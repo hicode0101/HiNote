@@ -1,0 +1,21 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# Tauri build outputs
+src-tauri/target
+src-tauri/gen/schemas
+
+# vditor offline assets copied by scripts/copy-vditor.mjs
+public/vditor

@@ -1,0 +1,106 @@
+{
+  "app": {
+    "name": "HiNote",
+    "allNotes": "All Notes"
+  },
+  "titlebar": {
+    "settings": "Settings"
+  },
+  "welcome": {
+    "title": "Welcome to HiNote",
+    "desc": "Pick a folder as your workspace and start taking notes. Everything is stored locally as plain Markdown files.",
+    "choose": "Choose Workspace Folder",
+    "chooseAgain": "Choose Workspace Again",
+    "workspaceMissing": "The workspace folder is missing or inaccessible, please choose again",
+    "recent": "Recent Workspaces",
+    "removeRecent": "Remove from list"
+  },
+  "sidebar": {
+    "search": "Search",
+    "newNote": "New Note",
+    "newFolder": "New Folder",
+    "empty": "This folder is empty",
+    "noMatch": "No matching results",
+    "changeWorkspace": "Change Workspace"
+  },
+  "menu": {
+    "newDoc": "New Note",
+    "newFolder": "New Folder",
+    "rename": "Rename",
+    "delete": "Delete",
+    "reveal": "Reveal in File Explorer"
+  },
+  "editor": {
+    "classic": "Classic",
+    "fluid": "Fluid",
+    "edit": "Edit",
+    "preview": "Preview",
+    "emptyTitle": "No document open",
+    "emptyDesc": "Select a document on the left, or create a new one to start editing",
+    "newDoc": "New Note",
+    "saved": "Saved",
+    "unsaved": "Unsaved",
+    "saving": "Saving…",
+    "modeClassic": "Classic Mode",
+    "modeFluid": "Fluid Mode",
+    "pasteImageFailed": "Failed to save the image. Please try again."
+  },
+  "status": {
+    "line": "Ln",
+    "col": "Col",
+    "chars": "chars",
+    "markdown": "Markdown",
+    "lf": "LF",
+    "utf8": "UTF-8"
+  },
+  "toolbar": {
+    "bold": "Bold",
+    "italic": "Italic",
+    "strike": "Strikethrough",
+    "h1": "Heading 1",
+    "h2": "Heading 2",
+    "h3": "Heading 3",
+    "quote": "Quote",
+    "ul": "Bulleted List",
+    "ol": "Numbered List",
+    "task": "Task List",
+    "code": "Inline Code",
+    "codeblock": "Code Block",
+    "link": "Link",
+    "image": "Image",
+    "table": "Table",
+    "hr": "Horizontal Rule",
+    "undo": "Undo",
+    "redo": "Redo",
+    "tableCol": "Column"
+  },
+  "settings": {
+    "title": "Settings",
+    "imagesDir": "Images Folder Name",
+    "imagesDirHint": "Pasted images are saved into this folder next to the current note",
+    "language": "Language",
+    "languageHint": "Follow the system by default; you can force one here (highest priority)",
+    "theme": "Theme",
+    "themeHint": "Light / dark mode, applied immediately and remembered",
+    "system": "Follow System",
+    "light": "Light Mode",
+    "dark": "Dark Mode",
+    "close": "Close"
+  },
+  "dialog": {
+    "ok": "OK",
+    "cancel": "Cancel",
+    "newDocTitle": "New Note",
+    "newFolderTitle": "New Folder",
+    "renameTitle": "Rename",
+    "namePlaceholder": "Enter a name",
+    "deleteTitle": "Confirm Deletion",
+    "deleteDocMsg": "Are you sure you want to delete \"{name}\"? This cannot be undone.",
+    "deleteFolderMsg": "Are you sure you want to delete the folder \"{name}\" and all of its contents? This cannot be undone."
+  },
+  "error": {
+    "operationFailed": "Operation failed: {msg}",
+    "localeLoadFailed": "Failed to load language file",
+    "noWorkspace": "No workspace selected"
+  }
+}

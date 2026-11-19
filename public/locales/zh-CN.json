@@ -1,0 +1,106 @@
+{
+  "app": {
+    "name": "HiNote",
+    "allNotes": "全部笔记"
+  },
+  "titlebar": {
+    "settings": "设置"
+  },
+  "welcome": {
+    "title": "欢迎使用 HiNote",
+    "desc": "选择一个文件夹作为工作区，开始记录你的笔记。所有内容都以纯 Markdown 文件保存在本地。",
+    "choose": "选择工作区目录",
+    "chooseAgain": "重新选择工作区目录",
+    "workspaceMissing": "工作区目录不存在或无法访问，请重新选择",
+    "recent": "最近打开",
+    "removeRecent": "从列表中移除"
+  },
+  "sidebar": {
+    "search": "搜索",
+    "newNote": "新建文档",
+    "newFolder": "新建文件夹",
+    "empty": "此目录为空",
+    "noMatch": "无匹配结果",
+    "changeWorkspace": "更换工作区"
+  },
+  "menu": {
+    "newDoc": "新建文档",
+    "newFolder": "新建文件夹",
+    "rename": "重命名",
+    "delete": "删除",
+    "reveal": "在资源管理器中显示"
+  },
+  "editor": {
+    "classic": "经典",
+    "fluid": "流畅",
+    "edit": "编辑",
+    "preview": "预览",
+    "emptyTitle": "未打开文档",
+    "emptyDesc": "在左侧选择一个文档，或新建一个文档开始编辑",
+    "newDoc": "新建文档",
+    "saved": "已保存",
+    "unsaved": "未保存",
+    "saving": "保存中…",
+    "modeClassic": "经典模式",
+    "modeFluid": "流畅模式",
+    "pasteImageFailed": "图片保存失败，请重试"
+  },
+  "status": {
+    "line": "行",
+    "col": "列",
+    "chars": "字符",
+    "markdown": "Markdown",
+    "lf": "LF",
+    "utf8": "UTF-8"
+  },
+  "toolbar": {
+    "bold": "加粗",
+    "italic": "斜体",
+    "strike": "删除线",
+    "h1": "一级标题",
+    "h2": "二级标题",
+    "h3": "三级标题",
+    "quote": "引用",
+    "ul": "无序列表",
+    "ol": "有序列表",
+    "task": "任务列表",
+    "code": "行内代码",
+    "codeblock": "代码块",
+    "link": "链接",
+    "image": "图片",
+    "table": "表格",
+    "hr": "分割线",
+    "undo": "撤销",
+    "redo": "重做",
+    "tableCol": "列"
+  },
+  "settings": {
+    "title": "设置",
+    "imagesDir": "图片目录名",
+    "imagesDirHint": "粘贴图片将自动保存到当前文档所在目录下的此目录",
+    "language": "界面语言",
+    "languageHint": "默认跟随系统，也可在此强制指定（优先级最高）",
+    "theme": "主题风格",
+    "themeHint": "浅色 / 深色模式，切换后立即生效并记住",
+    "system": "跟随系统",
+    "light": "浅色模式",
+    "dark": "深色模式",
+    "close": "关闭"
+  },
+  "dialog": {
+    "ok": "确定",
+    "cancel": "取消",
+    "newDocTitle": "新建文档",
+    "newFolderTitle": "新建文件夹",
+    "renameTitle": "重命名",
+    "namePlaceholder": "输入名称",
+    "deleteTitle": "删除确认",
+    "deleteDocMsg": "确定要删除「{name}」吗？此操作不可恢复。",
+    "deleteFolderMsg": "确定要删除文件夹「{name}」及其全部内容吗？此操作不可恢复。"
+  },
+  "error": {
+    "operationFailed": "操作失败：{msg}",
+    "localeLoadFailed": "语言文件加载失败",
+    "noWorkspace": "尚未选择工作区"
+  }
+}
