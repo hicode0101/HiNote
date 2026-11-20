@@ -59,6 +59,38 @@ export function displayUrl(absPath: string): string {
 
 const IMAGE_MD_RE = /(!\[[^\]]*\]\()(\s*)(<[^>]*>|[^)\n]+?)(\s*\))/g;
 
+/** Markdown 里内嵌的 HTML `<img src="…">`（引号风格各有不同）。 */
+const IMG_HTML_RE = /(<img\b[^>]*?\bsrc=)(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))([^>]*>)/gi;
+
+/**
+ * Rewrite the `src` of every HTML `<img>` in the markdown text via `map`:
+ * return the replacement value, or null to keep the original untouched.
+ */
+function rewriteHtmlImg(
+  md: string,
+  map: (src: string) => string | null
+): string {
+  return md.replace(
+    IMG_HTML_RE,
+    (
+      whole: string,
+      lead: string,
+      dq: string | undefined,
+      sq: string | undefined,
+      uq: string | undefined,
+      tail: string | undefined
+    ) => {
+      const src = dq ?? sq ?? uq ?? "";
+      if (!src || tail === undefined) return whole;
+      const next = map(src);
+      if (!next || next === src) return whole;
+      if (dq !== undefined) return `${lead}"${next}"${tail}`;
+      if (sq !== undefined) return `${lead}'${next}'${tail}`;
+      return `${lead}${next}${tail}`;
+    }
+  );
+}
+
 /** Absolute local path for a Tauri asset URL; null for non-asset sources. */
 export function assetUrlToAbsPath(url: string): string | null {
   const http = ASSET_HTTP_RE.exec(url);
@@ -71,11 +103,12 @@ export function assetUrlToAbsPath(url: string): string | null {
 /**
  * Rewrite image refs in markdown source to webview-loadable URLs. Used when
  * feeding the WYSIWYG editor (vditor), which renders `src` attributes
- * directly and cannot resolve note-relative paths on its own.
+ * directly and cannot resolve note-relative paths on its own. Covers both
+ * `![](...)` refs and HTML `<img src="…">` tags embedded in the markdown.
  */
 export function markdownToDisplay(md: string, notePath: string): string {
   if (!isTauri() || !notePath) return md;
-  return md.replace(IMAGE_MD_RE, (whole, lead: string, _ws: string, dest: string, tail: string) => {
+  const mdImages = md.replace(IMAGE_MD_RE, (whole, lead: string, _ws: string, dest: string, tail: string) => {
     let inner = dest;
     if (inner.startsWith("<") && inner.endsWith(">")) inner = inner.slice(1, -1);
     // Skip titles/spaced dests — only plain paths are safe to rewrite.
@@ -84,16 +117,22 @@ export function markdownToDisplay(md: string, notePath: string): string {
     if (!abs) return whole;
     return `${lead}${displayUrl(abs)}${tail}`;
   });
+  return rewriteHtmlImg(mdImages, (src) => {
+    const abs = refToAbsPath(src, notePath);
+    return abs ? displayUrl(abs) : null;
+  });
 }
 
 /**
  * Rewrite asset-protocol image refs back to portable (relative) paths.
  * The inverse of {@link markdownToDisplay}; runs before persisting content
- * read back from the WYSIWYG editor.
+ * read back from the WYSIWYG editor. Covers `![](...)` refs and HTML
+ * `<img src="…">` tags alike so embedded-HTML images never leak asset URLs
+ * into the saved file.
  */
 export function markdownToSource(md: string, notePath: string): string {
   if (!notePath) return md;
-  return md.replace(IMAGE_MD_RE, (whole, lead: string, _ws: string, dest: string, tail: string) => {
+  const mdImages = md.replace(IMAGE_MD_RE, (whole, lead: string, _ws: string, dest: string, tail: string) => {
     const http = ASSET_HTTP_RE.exec(dest);
     const scheme = http ? null : ASSET_SCHEME_RE.exec(dest);
     if (!http && !scheme) return whole;
@@ -102,5 +141,14 @@ export function markdownToSource(md: string, notePath: string): string {
     const rel = absToRef(abs, notePath);
     if (rel === null) return whole;
     return `${lead}${rel}${tail}`;
+  });
+  return rewriteHtmlImg(mdImages, (src) => {
+    const http = ASSET_HTTP_RE.exec(src);
+    const scheme = http ? null : ASSET_SCHEME_RE.exec(src);
+    if (!http && !scheme) return null;
+    const abs = safeDecode((http ? http[2] : scheme![1]).replace(/\/+$/, ""));
+    if (!abs) return null;
+    const rel = absToRef(abs, notePath);
+    return rel === null ? null : rel;
   });
 }

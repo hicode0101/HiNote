@@ -49,6 +49,7 @@ export async function chooseWorkspace(dir: string | null): Promise<void> {
   // Flush + close the previous doc (also clears the watched file).
   await closeFile();
   workspace.expanded.clear();
+  workspace.filter = ""; // 同时清空侧边栏搜索状态
   workspace.activePath = null;
   try {
     await api.setSessionWorkspace(dir);

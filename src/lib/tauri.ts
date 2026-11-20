@@ -29,6 +29,27 @@ export interface ReadOut {
   lossy: boolean;
 }
 
+/** 工作区搜索命中的单个结果（名称命中或内容命中）。 */
+export interface SearchHit {
+  path: string;
+  /** 相对工作区根的目录部分（根目录下的条目为空串）。 */
+  rel_dir: string;
+  name: string;
+  kind: "dir" | "file";
+  /** 与目录树一致的 file_type 标识（文件夹为空串）。 */
+  file_type: string;
+  /** "name"（名称命中）| "content"（内容命中）。 */
+  matched: "name" | "content";
+  /** 内容命中时首处匹配的上下文片段。 */
+  snippet?: string | null;
+}
+
+export interface SearchOut {
+  hits: SearchHit[];
+  /** 因超时 / 上限提前截断时为 true。 */
+  truncated: boolean;
+}
+
 /** True when running inside the Tauri webview (vs. a plain browser). */
 export function isTauri(): boolean {
   return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
@@ -38,6 +59,9 @@ export const api = {
   getConfig: () => invoke<AppConfig>("get_config"),
   saveConfig: (config: AppConfig) => invoke<void>("save_config", { config }),
   readTree: (root: string) => invoke<TreeNode[]>("read_tree", { root }),
+  /** 全文搜索：文件 / 文件夹名 + 文本类文件内容（后端线程执行，带限额）。 */
+  searchWorkspace: (query: string, limit?: number) =>
+    invoke<SearchOut>("search_workspace", { query, limit: limit ?? null }),
   setSessionWorkspace: (path: string) =>
     invoke<void>("set_session_workspace", { path }),
   readFile: (path: string, forcedEncoding?: string) =>

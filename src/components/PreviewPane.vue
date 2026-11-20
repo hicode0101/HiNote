@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import MarkdownIt from "markdown-it";
 import taskListsPlugin from "markdown-it-task-lists";
 import hljs from "highlight.js";
@@ -13,6 +13,7 @@ import { hlAuto } from "@/lib/hljsAuto";
 import PreviewSearch from "./PreviewSearch.vue";
 
 const scrollEl = ref<HTMLElement | null>(null);
+const mdEl = ref<HTMLElement | null>(null);
 const searchRef = ref<InstanceType<typeof PreviewSearch> | null>(null);
 
 /** Double-click an image in the preview to open the gallery overlay. */
@@ -120,12 +121,33 @@ function resolveLocalSrc(src: string): string {
 }
 
 const html = computed(() => md.render(editor.content));
+
+/**
+ * markdown-it 的 token 改写只覆盖 `![](...)` 语法；markdown 里直接内嵌的
+ * HTML `<img src="相对路径">`（如 README 表格截图）会原样输出，webview 按
+ * 虚拟域名解析导致破图。渲染后在 DOM 上兜底：仍为本地相对/绝对路径的 img
+ * 一律改写为 asset URL（与 HiEditor 预览 resolveLocalImages 同思路）。
+ * refToAbsPath 对 http/data/asset 等外部源返回 null，已处理的图片自动跳过。
+ */
+async function resolveHtmlImages(): Promise<void> {
+  await nextTick();
+  if (!editor.path || !mdEl.value) return;
+  for (const img of mdEl.value.querySelectorAll("img[src]")) {
+    const raw = img.getAttribute("src") ?? "";
+    if (!raw) continue;
+    const abs = refToAbsPath(raw, editor.path);
+    if (abs) img.setAttribute("src", displayUrl(abs));
+  }
+}
+
+watch(html, () => void resolveHtmlImages());
+onMounted(() => void resolveHtmlImages());
 </script>
 
 <template>
   <div class="preview-root">
     <div ref="scrollEl" class="preview-scroll" @dblclick="onDblClick" @click="onClick" @contextmenu="onContextMenu">
-      <div class="md-preview" v-html="html"></div>
+      <div ref="mdEl" class="md-preview" v-html="html"></div>
     </div>
     <PreviewSearch ref="searchRef" :container="scrollEl" />
   </div>
@@ -147,7 +169,6 @@ const html = computed(() => md.render(editor.content));
   background: var(--bg-layer);
 }
 .md-preview {
-  max-width: 860px;
-  margin: 0 auto;
+  /* 靠左显示：不做水平居中（max-width + margin:auto 已移除），左右边距由 .preview-scroll 提供 */
 }
 </style>

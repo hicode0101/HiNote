@@ -26,7 +26,7 @@ const IGNORED_DIRS: &[&str] = &[
     "system volume information",
 ];
 
-fn is_ignored_dir(name: &str) -> bool {
+pub(crate) fn is_ignored_dir(name: &str) -> bool {
     let lower = name.to_lowercase();
     name.starts_with('.') || IGNORED_DIRS.contains(&lower.as_str())
 }
@@ -34,7 +34,7 @@ fn is_ignored_dir(name: &str) -> bool {
 /// Extension → file-type id. `None` = not shown in the tree.
 /// Mirrors HiEditor's language registry: markdown/txt plus the 16 code
 /// languages, JSON/XML, PDF and images.
-fn file_type_of(p: &Path) -> Option<&'static str> {
+pub(crate) fn file_type_of(p: &Path) -> Option<&'static str> {
     let ext = p
         .extension()
         .and_then(|e| e.to_str())?

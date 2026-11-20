@@ -54,6 +54,7 @@ pub fn run() {
             recent::add_recent_workspace,
             recent::remove_recent_workspace,
             commands::read_tree,
+            commands::search_workspace,
             commands::read_file,
             commands::read_binary_file,
             commands::write_file,

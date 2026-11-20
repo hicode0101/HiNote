@@ -286,6 +286,10 @@ onMounted(() => {
     preview: {
       hljs: { enable: true, style: "github" },
       markdown: { codeBlockPreview: true },
+      // 靠左排版：vditor 运行时会按 (容器宽 - preview.maxWidth) / 2 给编辑区
+      // 加对称内边距（居中内容列，下限 35px）。把 maxWidth 放大到远超窗口
+      // 宽度后该值恒为负，取下限 35px —— 内容与工具栏均靠左，保留边距。
+      maxWidth: 9999,
     },
     // Double-click on an image opens our own ImagePreview overlay;
     // disable vditor's built-in lightbox so it doesn't pop up alongside it.

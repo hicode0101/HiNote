@@ -17,6 +17,9 @@
   },
   "sidebar": {
     "search": "Search",
+    "results": "Search Results",
+    "searching": "Searching…",
+    "truncated": "Too many matches, showing the first {n}",
     "newNote": "New Note",
     "newFolder": "New Folder",
     "empty": "This folder is empty",

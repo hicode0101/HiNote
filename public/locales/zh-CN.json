@@ -17,6 +17,9 @@
   },
   "sidebar": {
     "search": "搜索",
+    "results": "搜索结果",
+    "searching": "搜索中…",
+    "truncated": "结果过多，仅显示前 {n} 条",
     "newNote": "新建文档",
     "newFolder": "新建文件夹",
     "empty": "此目录为空",
