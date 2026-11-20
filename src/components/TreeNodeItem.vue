@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { TreeNode } from "@/lib/tauri";
+import { isImagePath } from "@/lib/tauri";
 import { workspace, toggleExpand, activateFile } from "@/stores/workspace";
 import { openContextMenu } from "@/stores/ui";
 import Icon from "./Icon.vue";
@@ -12,6 +13,7 @@ const props = defineProps<{
 }>();
 
 const isDir = computed(() => props.node.kind === "dir");
+const isImage = computed(() => !isDir.value && isImagePath(props.node.name));
 const expanded = computed(
   () => props.filterActive || workspace.expanded.has(props.node.path)
 );
@@ -53,7 +55,7 @@ function onContext(e: MouseEvent): void {
           class="twisty-icon"
         />
       </span>
-      <Icon :name="isDir ? 'folder' : 'document'" :size="16" class="row-icon" />
+      <Icon :name="isDir ? 'folder' : isImage ? 'image' : 'document'" :size="16" class="row-icon" />
       <span class="row-label" :title="node.name">{{ node.name }}</span>
     </div>
 

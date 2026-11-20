@@ -21,14 +21,17 @@
     "newFolder": "新建文件夹",
     "empty": "此目录为空",
     "noMatch": "无匹配结果",
-    "changeWorkspace": "更换工作区"
+    "changeWorkspace": "更换工作区",
+    "collapse": "折叠侧栏",
+    "expand": "展开侧栏"
   },
   "menu": {
     "newDoc": "新建文档",
     "newFolder": "新建文件夹",
     "rename": "重命名",
     "delete": "删除",
-    "reveal": "在资源管理器中显示"
+    "reveal": "在资源管理器中显示",
+    "refresh": "刷新"
   },
   "editor": {
     "classic": "经典",
@@ -96,11 +99,55 @@
     "namePlaceholder": "输入名称",
     "deleteTitle": "删除确认",
     "deleteDocMsg": "确定要删除「{name}」吗？此操作不可恢复。",
-    "deleteFolderMsg": "确定要删除文件夹「{name}」及其全部内容吗？此操作不可恢复。"
+    "deleteFolderMsg": "确定要删除文件夹「{name}」及其全部内容吗？此操作不可恢复。",
+    "fileChangedTitle": "文件已修改",
+    "fileChangedBody": "「{name}」已在磁盘上被修改，是否重新加载？",
+    "fileChangedDirtyBody": "「{name}」已在磁盘上被修改，且当前有未保存的修改，重新加载将丢弃这些修改。是否重新加载？",
+    "reloadConfirmTitle": "重新加载文件",
+    "reloadConfirmBody": "「{name}」有未保存的修改，重新加载将丢弃这些修改。是否继续？"
   },
   "error": {
     "operationFailed": "操作失败：{msg}",
     "localeLoadFailed": "语言文件加载失败",
     "noWorkspace": "尚未选择工作区"
+  },
+  "preview": {
+    "close": "关闭",
+    "prev": "上一张",
+    "next": "下一张",
+    "zoomIn": "放大",
+    "zoomOut": "缩小",
+    "rotate": "向左旋转",
+    "fit": "重置视图",
+    "copy": "复制图片",
+    "saveAs": "另存为",
+    "copyOk": "图片已复制到剪贴板",
+    "copyFailed": "复制图片失败",
+    "saveFailed": "保存图片失败",
+    "savedTo": "已保存到 {path}"
+  },
+  "editmenu": {
+    "undo": "撤销",
+    "redo": "重做",
+    "cut": "剪切",
+    "copy": "复制",
+    "paste": "粘贴",
+    "selectAll": "全选",
+    "bold": "加粗",
+    "italic": "斜体",
+    "strike": "删除线",
+    "inlineCode": "行内代码",
+    "heading1": "标题一",
+    "heading2": "标题二",
+    "heading3": "标题三",
+    "quote": "引用",
+    "bulletList": "无序列表",
+    "numberedList": "有序列表",
+    "taskList": "任务列表",
+    "link": "插入链接",
+    "codeBlock": "代码块",
+    "table": "插入表格",
+    "hr": "分割线",
+    "reloadFile": "重新加载文件"
   }
 }

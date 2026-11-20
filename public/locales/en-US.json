@@ -21,14 +21,17 @@
     "newFolder": "New Folder",
     "empty": "This folder is empty",
     "noMatch": "No matching results",
-    "changeWorkspace": "Change Workspace"
+    "changeWorkspace": "Change Workspace",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar"
   },
   "menu": {
     "newDoc": "New Note",
     "newFolder": "New Folder",
     "rename": "Rename",
     "delete": "Delete",
-    "reveal": "Reveal in File Explorer"
+    "reveal": "Reveal in File Explorer",
+    "refresh": "Refresh"
   },
   "editor": {
     "classic": "Classic",
@@ -96,11 +99,55 @@
     "namePlaceholder": "Enter a name",
     "deleteTitle": "Confirm Deletion",
     "deleteDocMsg": "Are you sure you want to delete \"{name}\"? This cannot be undone.",
-    "deleteFolderMsg": "Are you sure you want to delete the folder \"{name}\" and all of its contents? This cannot be undone."
+    "deleteFolderMsg": "Are you sure you want to delete the folder \"{name}\" and all of its contents? This cannot be undone.",
+    "fileChangedTitle": "File Modified",
+    "fileChangedBody": "\"{name}\" has been modified on disk. Reload it?",
+    "fileChangedDirtyBody": "\"{name}\" has been modified on disk, and there are unsaved changes. Reloading will discard them. Reload anyway?",
+    "reloadConfirmTitle": "Reload File",
+    "reloadConfirmBody": "\"{name}\" has unsaved changes. Reloading will discard them. Continue?"
   },
   "error": {
     "operationFailed": "Operation failed: {msg}",
     "localeLoadFailed": "Failed to load language file",
     "noWorkspace": "No workspace selected"
+  },
+  "preview": {
+    "close": "Close",
+    "prev": "Previous",
+    "next": "Next",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "rotate": "Rotate left",
+    "fit": "Reset view",
+    "copy": "Copy image",
+    "saveAs": "Save as",
+    "copyOk": "Image copied to clipboard",
+    "copyFailed": "Failed to copy the image",
+    "saveFailed": "Failed to save the image",
+    "savedTo": "Saved to {path}"
+  },
+  "editmenu": {
+    "undo": "Undo",
+    "redo": "Redo",
+    "cut": "Cut",
+    "copy": "Copy",
+    "paste": "Paste",
+    "selectAll": "Select All",
+    "bold": "Bold",
+    "italic": "Italic",
+    "strike": "Strikethrough",
+    "inlineCode": "Inline Code",
+    "heading1": "Heading 1",
+    "heading2": "Heading 2",
+    "heading3": "Heading 3",
+    "quote": "Quote",
+    "bulletList": "Bullet List",
+    "numberedList": "Numbered List",
+    "taskList": "Task List",
+    "link": "Insert Link",
+    "codeBlock": "Code Block",
+    "table": "Insert Table",
+    "hr": "Horizontal Rule",
+    "reloadFile": "Reload File"
   }
 }

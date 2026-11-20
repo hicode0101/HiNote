@@ -1,7 +1,9 @@
 import { reactive } from "vue";
-import { api, TreeNode } from "@/lib/tauri";
+import { api, TreeNode, isImagePath } from "@/lib/tauri";
+import { displayUrl } from "@/lib/imgSrc";
 import { settings, persistSettings } from "./settings";
-import { editor, openFile, closeFile } from "./editor";
+import { openFile, closeFile } from "./editor";
+import { openImagePreview } from "./imgpreview";
 
 export const workspace = reactive({
   tree: [] as TreeNode[],
@@ -42,9 +44,10 @@ export async function chooseWorkspace(dir: string | null): Promise<void> {
   }
   settings.workspace = dir;
   await persistSettings();
+  // Flush + close the previous doc (also clears the watched file).
+  await closeFile();
   workspace.expanded.clear();
   workspace.activePath = null;
-  editor.path = null;
   try {
     await api.setSessionWorkspace(dir);
   } catch {
@@ -93,7 +96,32 @@ export function expandPath(path: string): void {
   workspace.expanded.add(path);
 }
 
+/** Sibling list (within the same tree folder) containing `path`, if any. */
+function findSiblingList(nodes: TreeNode[], path: string): TreeNode[] | null {
+  const lower = path.toLowerCase();
+  for (const node of nodes) {
+    if (node.path.toLowerCase() === lower) return nodes;
+    const found = findSiblingList(node.children, path);
+    if (found) return found;
+  }
+  return null;
+}
+
+/** Open an image file from the tree in the gallery preview. */
+function previewImageFile(path: string): void {
+  const siblings = findSiblingList(workspace.tree, path);
+  const images = (siblings ?? [])
+    .filter((n) => n.kind === "file" && isImagePath(n.path))
+    .map((n) => ({ url: displayUrl(n.path), absPath: n.path, name: n.name }));
+  const index = images.findIndex((img) => img.absPath.toLowerCase() === path.toLowerCase());
+  openImagePreview(images, Math.max(index, 0));
+}
+
 export async function activateFile(path: string): Promise<void> {
+  if (isImagePath(path)) {
+    previewImageFile(path);
+    return;
+  }
   await openFile(path);
   workspace.activePath = path;
 }

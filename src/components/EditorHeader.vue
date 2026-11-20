@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { t } from "@/lib/i18n";
-import { settings, updateEditorMode, type EditorMode } from "@/stores/settings";
+import { settings, updateEditorMode, toggleSidebar, type EditorMode } from "@/stores/settings";
 import { editor } from "@/stores/editor";
 import { baseName } from "@/lib/tauri";
 import Icon from "./Icon.vue";
@@ -34,6 +34,13 @@ function setView(view: "edit" | "preview"): void {
 <template>
   <div class="editor-header">
     <nav class="breadcrumb" :title="editor.path ?? ''">
+      <button
+        class="icon-btn panel-toggle"
+        :title="settings.sidebarCollapsed ? t('sidebar.expand') : t('sidebar.collapse')"
+        @click="toggleSidebar"
+      >
+        <Icon :name="settings.sidebarCollapsed ? 'chevronRight' : 'chevronLeft'" :size="15" />
+      </button>
       <Icon name="note" :size="14" class="crumb-icon" />
       <template v-if="breadcrumbs.length">
         <span class="crumb muted">{{ t("app.allNotes") }}</span>
@@ -105,6 +112,10 @@ function setView(view: "edit" | "preview"): void {
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
+}
+.panel-toggle {
+  margin-right: 4px;
+  flex-shrink: 0;
 }
 .crumb-icon {
   color: var(--accent);

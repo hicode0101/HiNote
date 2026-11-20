@@ -59,6 +59,15 @@ export function displayUrl(absPath: string): string {
 
 const IMAGE_MD_RE = /(!\[[^\]]*\]\()(\s*)(<[^>]*>|[^)\n]+?)(\s*\))/g;
 
+/** Absolute local path for a Tauri asset URL; null for non-asset sources. */
+export function assetUrlToAbsPath(url: string): string | null {
+  const http = ASSET_HTTP_RE.exec(url);
+  const scheme = http ? null : ASSET_SCHEME_RE.exec(url);
+  if (!http && !scheme) return null;
+  const abs = safeDecode((http ? http[2] : scheme![1]).replace(/\/+$/, ""));
+  return abs || null;
+}
+
 /**
  * Rewrite image refs in markdown source to webview-loadable URLs. Used when
  * feeding the WYSIWYG editor (vditor), which renders `src` attributes

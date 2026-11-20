@@ -12,6 +12,8 @@ export const settings = reactive({
   language: "system" as LangOption,
   theme: "system" as ThemeOption,
   editorMode: "classic" as EditorMode,
+  /** Left tree hidden to maximize the editor area (persisted). */
+  sidebarCollapsed: false,
 });
 
 export async function loadSettings(): Promise<void> {
@@ -21,6 +23,7 @@ export async function loadSettings(): Promise<void> {
     settings.language = (cfg.language as LangOption) || "system";
     settings.theme = (cfg.theme as ThemeOption) || "system";
     settings.editorMode = (cfg.editor_mode as EditorMode) || "classic";
+    settings.sidebarCollapsed = !!cfg.sidebar_collapsed;
   } catch {
     // Running outside Tauri (browser smoke test) — keep defaults.
   }
@@ -35,12 +38,18 @@ export async function persistSettings(): Promise<void> {
     language: settings.language,
     theme: settings.theme,
     editor_mode: settings.editorMode,
+    sidebar_collapsed: settings.sidebarCollapsed,
   };
   try {
     await api.saveConfig(cfg);
   } catch {
     // Ignore persistence failures outside Tauri.
   }
+}
+
+export async function toggleSidebar(): Promise<void> {
+  settings.sidebarCollapsed = !settings.sidebarCollapsed;
+  await persistSettings();
 }
 
 export async function updateTheme(pref: ThemeOption): Promise<void> {

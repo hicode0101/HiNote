@@ -375,56 +375,124 @@ body {
   color: var(--text-tertiary);
 }
 
-/* highlight.js token colors (light) */
-.md-preview .hljs-comment,
-.md-preview .hljs-quote {
-  color: #6a737d;
+/* highlight.js token colors — light (matches the editor's VS Code palette) */
+/* Fluid editor: keep vditor's github.min.css base from painting a white box. */
+.fluid-host .hljs {
+  background: transparent;
+  color: var(--text-primary);
+}
+[data-theme="dark"] .fluid-host .hljs {
+  background: transparent;
+  color: var(--text-primary);
+}
+:is(.md-preview, .fluid-host) .hljs-comment,
+:is(.md-preview, .fluid-host) .hljs-quote {
+  color: #008000;
   font-style: italic;
 }
-.md-preview .hljs-keyword,
-.md-preview .hljs-selector-tag {
-  color: #a626a4;
+:is(.md-preview, .fluid-host) .hljs-keyword,
+:is(.md-preview, .fluid-host) .hljs-selector-tag,
+:is(.md-preview, .fluid-host) .hljs-selector-id {
+  color: #0000ff;
 }
-.md-preview .hljs-string,
-.md-preview .hljs-attr {
-  color: #50a14f;
+:is(.md-preview, .fluid-host) .hljs-string,
+:is(.md-preview, .fluid-host) .hljs-regexp,
+:is(.md-preview, .fluid-host) .hljs-addition {
+  color: #a31515;
 }
-.md-preview .hljs-number,
-.md-preview .hljs-literal {
-  color: #b76b01;
+:is(.md-preview, .fluid-host) .hljs-number,
+:is(.md-preview, .fluid-host) .hljs-literal {
+  color: #098658;
 }
-.md-preview .hljs-title,
-.md-preview .hljs-name {
-  color: #4078f2;
+:is(.md-preview, .fluid-host) .hljs-meta,
+:is(.md-preview, .fluid-host) .hljs-doctag,
+:is(.md-preview, .fluid-host) .hljs-symbol,
+:is(.md-preview, .fluid-host) .hljs-bullet {
+  color: #af00db;
 }
-.md-preview .hljs-built_in,
-.md-preview .hljs-type {
-  color: #c18401;
+:is(.md-preview, .fluid-host) .hljs-attr,
+:is(.md-preview, .fluid-host) .hljs-attribute,
+:is(.md-preview, .fluid-host) .hljs-variable,
+:is(.md-preview, .fluid-host) .hljs-template-variable,
+:is(.md-preview, .fluid-host) .hljs-selector-class,
+:is(.md-preview, .fluid-host) .hljs-property {
+  color: #0451a5;
+}
+:is(.md-preview, .fluid-host) .hljs-title,
+:is(.md-preview, .fluid-host) .hljs-title.function_,
+:is(.md-preview, .fluid-host) .hljs-name,
+:is(.md-preview, .fluid-host) .hljs-function {
+  color: #795e26;
+}
+:is(.md-preview, .fluid-host) .hljs-title.class_,
+:is(.md-preview, .fluid-host) .hljs-built_in,
+:is(.md-preview, .fluid-host) .hljs-type,
+:is(.md-preview, .fluid-host) .hljs-class {
+  color: #267f99;
+}
+:is(.md-preview, .fluid-host) .hljs-section {
+  color: #800000;
+}
+:is(.md-preview, .fluid-host) .hljs-deletion {
+  color: #a31515;
+}
+:is(.md-preview, .fluid-host) .hljs-strong {
+  font-weight: 600;
+}
+:is(.md-preview, .fluid-host) .hljs-emphasis {
+  font-style: italic;
 }
 
-[data-theme="dark"] .md-preview .hljs-comment,
-[data-theme="dark"] .md-preview .hljs-quote {
-  color: #7f848e;
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-comment,
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-quote {
+  color: #6a9955;
+  font-style: italic;
 }
-[data-theme="dark"] .md-preview .hljs-keyword,
-[data-theme="dark"] .md-preview .hljs-selector-tag {
-  color: #c678dd;
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-keyword,
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-selector-tag,
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-selector-id {
+  color: #569cd6;
 }
-[data-theme="dark"] .md-preview .hljs-string,
-[data-theme="dark"] .md-preview .hljs-attr {
-  color: #98c379;
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-string,
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-regexp,
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-addition {
+  color: #ce9178;
 }
-[data-theme="dark"] .md-preview .hljs-number,
-[data-theme="dark"] .md-preview .hljs-literal {
-  color: #d19a66;
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-number,
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-literal {
+  color: #b5cea8;
 }
-[data-theme="dark"] .md-preview .hljs-title,
-[data-theme="dark"] .md-preview .hljs-name {
-  color: #61afef;
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-meta,
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-doctag,
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-symbol,
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-bullet {
+  color: #c586c0;
 }
-[data-theme="dark"] .md-preview .hljs-built_in,
-[data-theme="dark"] .md-preview .hljs-type {
-  color: #e5c07b;
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-attr,
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-attribute,
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-variable,
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-template-variable,
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-selector-class,
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-property {
+  color: #9cdcfe;
+}
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-title,
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-title.function_,
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-name,
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-function {
+  color: #dcdcaa;
+}
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-title.class_,
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-built_in,
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-type,
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-class {
+  color: #4ec9b0;
+}
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-section {
+  color: #569cd6;
+}
+[data-theme="dark"] :is(.md-preview, .fluid-host) .hljs-deletion {
+  color: #ce9178;
 }
 
 /* ---------- CodeMirror host ---------- */

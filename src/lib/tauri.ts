@@ -12,6 +12,7 @@ export interface AppConfig {
   language: string;
   theme: string;
   editor_mode: string;
+  sidebar_collapsed: boolean;
 }
 
 /** True when running inside the Tauri webview (vs. a plain browser). */
@@ -35,6 +36,9 @@ export const api = {
     invoke<void>("rename_path", { from, to }),
   deletePath: (path: string) => invoke<void>("delete_path", { path }),
   pathExists: (path: string) => invoke<boolean>("path_exists", { path }),
+  getFileMtime: (path: string) => invoke<number | null>("get_file_mtime", { path }),
+  setWatchedFile: (path: string | null) =>
+    invoke<void>("set_watched_file", { path: path ?? null }),
   savePasteImage: (notePath: string, ext: string, dataBase64?: string, sourcePath?: string) =>
     invoke<string>("save_paste_image", {
       notePath,
@@ -44,6 +48,23 @@ export const api = {
     }),
   pickDirectory: () => invoke<string | null>("pick_directory"),
   pickImageFile: () => invoke<string | null>("pick_image_file"),
+  saveImageAs: (args: {
+    path?: string | null;
+    dataBase64?: string | null;
+    ext?: string | null;
+    suggestedName?: string | null;
+  }) =>
+    invoke<string | null>("save_image_as", {
+      path: args.path ?? null,
+      dataBase64: args.dataBase64 ?? null,
+      ext: args.ext ?? null,
+      suggestedName: args.suggestedName ?? null,
+    }),
+  copyImageToClipboard: (args: { path?: string | null; dataBase64?: string | null }) =>
+    invoke<void>("copy_image_to_clipboard", {
+      path: args.path ?? null,
+      dataBase64: args.dataBase64 ?? null,
+    }),
   getRecentWorkspaces: () => invoke<string[]>("get_recent_workspaces"),
   addRecentWorkspace: (path: string) =>
     invoke<void>("add_recent_workspace", { path }),
@@ -62,6 +83,13 @@ export function joinPath(dir: string, name: string): string {
 export function baseName(p: string): string {
   const parts = p.split(/[\\/]/).filter(Boolean);
   return parts.length ? parts[parts.length - 1] : p;
+}
+
+const IMAGE_PATH_RE = /\.(png|jpe?g|gif|webp|bmp|svg)$/i;
+
+/** True when the path points at an image file shown in the tree/preview. */
+export function isImagePath(p: string): boolean {
+  return IMAGE_PATH_RE.test(p);
 }
 
 export { convertFileSrc };

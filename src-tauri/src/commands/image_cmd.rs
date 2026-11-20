@@ -2,7 +2,8 @@ use base64::Engine;
 use rand::Rng;
 use std::fs;
 use std::path::PathBuf;
-use tauri::State;
+use tauri::{AppHandle, State};
+use tauri_plugin_dialog::DialogExt;
 
 use crate::commands::fs_cmds::{ensure_within, workspace_root};
 use crate::config::AppState;
@@ -86,4 +87,110 @@ pub fn save_paste_image(
     }
 
     Ok(format!("{}/{}", images_dir_name, filename))
+}
+
+/// Open a save dialog and write the image (copied from a local file, or raw
+/// bytes from a remote URL) to the chosen location. Returns the saved path,
+/// or None when the dialog was cancelled.
+#[tauri::command]
+pub async fn save_image_as(
+    app: AppHandle,
+    path: Option<String>,
+    data_base64: Option<String>,
+    ext: Option<String>,
+    suggested_name: Option<String>,
+) -> Result<Option<String>, String> {
+    let src_path = path.map(PathBuf::from);
+    let ext_s = ext.clone().or_else(|| {
+        src_path
+            .as_ref()
+            .and_then(|p| p.extension().and_then(|e| e.to_str()))
+            .map(|e| e.to_lowercase())
+    });
+    let fallback_ext = ext_s.clone().unwrap_or_else(|| "png".into());
+    let name = suggested_name.unwrap_or_else(|| format!("image.{fallback_ext}"));
+
+    let (tx, mut rx) = tauri::async_runtime::channel::<Option<String>>(1);
+    let mut builder = app.dialog().file().set_file_name(&name);
+    if let Some(src) = &src_path {
+        if let Some(dir) = src.parent() {
+            builder = builder.set_directory(dir.to_path_buf());
+        }
+    }
+    let mut filter_exts: Vec<String> = ["png", "jpg", "jpeg", "gif", "webp", "bmp"]
+        .into_iter()
+        .map(String::from)
+        .collect();
+    if let Some(e) = &ext_s {
+        let e = e.to_lowercase();
+        if !filter_exts.iter().any(|x| x == &e) {
+            filter_exts.insert(0, e);
+        }
+    }
+    let filter_refs: Vec<&str> = filter_exts.iter().map(String::as_str).collect();
+    builder = builder.add_filter("Image", &filter_refs);
+    builder.save_file(move |file_path| {
+        let _ = tx.blocking_send(file_path.map(|p| p.to_string()));
+    });
+    let picked = rx
+        .recv()
+        .await
+        .ok_or_else(|| "dialog_channel_closed".to_string())?;
+    let Some(picked) = picked else {
+        return Ok(None); // cancelled
+    };
+    let mut target = PathBuf::from(&picked);
+    if target.extension().is_none() {
+        target.set_extension(fallback_ext);
+    }
+
+    if let Some(b64) = data_base64 {
+        let data = base64::engine::general_purpose::STANDARD
+            .decode(b64.as_bytes())
+            .map_err(|e| e.to_string())?;
+        if data.len() > MAX_IMAGE_BYTES {
+            return Err("image_too_large".into());
+        }
+        fs::write(&target, data).map_err(|e| e.to_string())?;
+    } else if let Some(src) = src_path {
+        fs::copy(&src, &target).map_err(|e| e.to_string())?;
+    } else {
+        return Err("no_image_data".into());
+    }
+
+    Ok(Some(target.to_string_lossy().to_string()))
+}
+
+/// Copy an image to the OS clipboard as a bitmap, decoded from a local file
+/// or from base64 bytes (remote image). Runs on a blocking thread: neither
+/// arboard nor image decoding belongs on the async runtime.
+#[tauri::command]
+pub async fn copy_image_to_clipboard(
+    path: Option<String>,
+    data_base64: Option<String>,
+) -> Result<(), String> {
+    let bytes = if let Some(p) = path {
+        fs::read(p).map_err(|e| e.to_string())?
+    } else if let Some(b64) = data_base64 {
+        base64::engine::general_purpose::STANDARD
+            .decode(b64.as_bytes())
+            .map_err(|e| e.to_string())?
+    } else {
+        return Err("no_image_data".into());
+    };
+    tauri::async_runtime::spawn_blocking(move || -> Result<(), String> {
+        let img = image::load_from_memory(&bytes).map_err(|e| e.to_string())?;
+        let rgba = img.to_rgba8();
+        let (width, height) = rgba.dimensions();
+        let data = arboard::ImageData {
+            width: width as usize,
+            height: height as usize,
+            bytes: rgba.into_raw().into(),
+        };
+        let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
+        clipboard.set_image(data).map_err(|e| e.to_string())?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }

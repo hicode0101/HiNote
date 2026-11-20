@@ -7,6 +7,8 @@ import { resolvedTheme } from "@/lib/theme";
 import { i18n, t } from "@/lib/i18n";
 import { savePastedImage, registerEditorView } from "@/lib/markdownActions";
 import { markdownToDisplay, markdownToSource, refToAbsPath, displayUrl } from "@/lib/imgSrc";
+import { openFromContainer } from "@/stores/imgpreview";
+import { hlAuto } from "@/lib/hljsAuto";
 import { baseName } from "@/lib/tauri";
 
 const host = ref<HTMLElement | null>(null);
@@ -57,6 +59,16 @@ onMounted(() => {
     cdn: "/vditor",
     cache: { enable: false },
     counter: { enable: false },
+    // Code block preview panes get vditor's own hljs highlighting (loaded
+    // from our local /vditor cdn) — bare/unknown-language fences are
+    // auto-detected by our MutationObserver enhancer below.
+    preview: {
+      hljs: { enable: true, style: "github" },
+      markdown: { codeBlockPreview: true },
+    },
+    // Double-click on an image opens our own ImagePreview overlay;
+    // disable vditor's built-in lightbox so it doesn't pop up alongside it.
+    image: { isPreview: false },
     placeholder: baseName(editor.path ?? ""),
     undoDelay: 300,
     toolbar: [
@@ -99,7 +111,35 @@ onMounted(() => {
       syncFromVditor(value);
     },
   });
+  // Double-click any rendered image in the WYSIWYG doc to open the preview.
+  host.value?.addEventListener("dblclick", onHostDblClick);
+  // vditor renders bare/unknown-language fences as plaintext; re-highlight
+  // their preview panes with auto-detection whenever the DOM changes.
+  codeEnhancer = new MutationObserver(() => enhanceBareCode());
+  if (host.value) codeEnhancer.observe(host.value, { childList: true, subtree: true });
+  enhanceBareCode();
 });
+
+let codeEnhancer: MutationObserver | null = null;
+
+/** Auto-highlight bare/unknown-language code blocks that vditor left plain. */
+function enhanceBareCode(): void {
+  host.value?.querySelectorAll<HTMLElement>(".vditor-wysiwyg__preview code").forEach((el) => {
+    if (el.querySelector("span")) return; // known language: vditor highlighted it
+    // Note: no dataset guard — vditor may fill the preview after our first
+    // pass; the span check below terminates the observer feedback loop.
+    const cls = [...el.classList].find((c) => c.startsWith("language-"));
+    if (/language-(mermaid|flowchart|echarts|mindmap|plantuml|smiles|abc|graphviz|math)/.test(cls ?? "")) return;
+    const auto = hlAuto(el.textContent ?? "", 1);
+    if (auto) el.innerHTML = auto;
+  });
+}
+
+/** Double-click an image in the WYSIWYG doc to open the gallery overlay. */
+function onHostDblClick(e: MouseEvent): void {
+  const img = (e.target as Element).closest("img");
+  if (img && host.value) openFromContainer(host.value, img);
+}
 
 watch(resolvedTheme, (theme) => {
   vditor?.setTheme(theme === "dark" ? "dark" : "classic");
@@ -115,7 +155,21 @@ watch(
   }
 );
 
+// Reload path: generation bumps without a path change (external-file reload).
+watch(
+  () => editor.generation,
+  () => {
+    if (vditor) {
+      boundGeneration = editor.generation;
+      vditor.setValue(displayValue());
+    }
+  }
+);
+
 onUnmounted(() => {
+  host.value?.removeEventListener("dblclick", onHostDblClick);
+  codeEnhancer?.disconnect();
+  codeEnhancer = null;
   vditor?.destroy();
   vditor = null;
 });

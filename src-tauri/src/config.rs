@@ -17,6 +17,8 @@ pub struct AppConfig {
     pub theme: String,
     /// classic | fluid
     pub editor_mode: String,
+    /// Left tree panel hidden (editor maximized).
+    pub sidebar_collapsed: bool,
 }
 
 impl Default for AppConfig {
@@ -26,6 +28,7 @@ impl Default for AppConfig {
             language: "system".into(),
             theme: "system".into(),
             editor_mode: "classic".into(),
+            sidebar_collapsed: false,
         }
     }
 }
@@ -36,6 +39,12 @@ pub struct AppState {
     /// via `set_session_workspace` when a workspace is opened). All file
     /// commands validate paths against this root.
     pub session_workspace: std::sync::Mutex<Option<PathBuf>>,
+    /// Live recursive watcher for the session workspace. Replaced whenever a
+    /// new workspace is opened; dropped (and watching stops) when `None`.
+    pub watcher: std::sync::Mutex<Option<crate::watcher::WatcherSession>>,
+    /// Currently open note file; watcher events matching it trigger the
+    /// frontend's reload-confirmation flow (event-driven, no polling).
+    pub watched_file: std::sync::Mutex<Option<PathBuf>>,
 }
 
 /// Ensure the app data dir exists and return it.

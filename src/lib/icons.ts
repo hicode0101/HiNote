@@ -37,4 +37,12 @@ export const icons: Record<string, string> = {
   sun: `<circle cx="12" cy="12" r="4"/><path d="M12 2.8v1.8M12 19.4v1.8M2.8 12h1.8M19.4 12h1.8M5.2 5.2l1.3 1.3M17.5 17.5l1.3 1.3M18.8 5.2l-1.3 1.3M6.5 17.5l-1.3 1.3"/>`,
   note: `<rect x="4.5" y="3.5" width="15" height="17" rx="2"/><path d="M8 8.5h8M8 12h8M8 15.5h5"/>`,
   sparkle: `<path d="M12 4l1.8 4.7L18.5 10.5l-4.7 1.8L12 17l-1.8-4.7L5.5 10.5l4.7-1.8L12 4z"/>`,
+  chevronLeft: `<path d="M14.5 5.5 8 12l6.5 6.5"/>`,
+  zoomIn: `<circle cx="11" cy="11" r="6.5"/><path d="M15.8 15.8 20.5 20.5"/><path d="M8.5 11h5M11 8.5v5"/>`,
+  zoomOut: `<circle cx="11" cy="11" r="6.5"/><path d="M15.8 15.8 20.5 20.5"/><path d="M8.5 11h5"/>`,
+  rotateLeft: `<path d="M12 4.5a7.5 7.5 0 1 0 7.5 7.5"/><path d="M15.5 2.6 12 4.5l3.5 1.9"/>`,
+  fit: `<path d="M3.5 8.5v-3a2 2 0 0 1 2-2h3M15.5 3.5h3a2 2 0 0 1 2 2v3M20.5 15.5v3a2 2 0 0 1-2 2h-3M8.5 20.5h-3a2 2 0 0 1-2-2v-3"/><circle cx="12" cy="12" r="3.2"/>`,
+  copy: `<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 6V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h1"/>`,
+  download: `<path d="M12 4v10M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 16.5v2a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-2"/>`,
+  refresh: `<path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>`,
 };

@@ -147,7 +147,71 @@ export function doRedo(): void {
   focusAndSync();
 }
 
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
+// ===== Editor context-menu actions (clipboard + selection) =====
+
+/** True when the editor has a non-empty selection. */
+export function hasSelection(): boolean {
+  if (!view) return false;
+  const sel = view.state.selection.main;
+  return sel.from !== sel.to;
+}
+
+function selectedText(): string {
+  if (!view) return "";
+  const sel = view.state.selection.main;
+  return view.state.sliceDoc(sel.from, sel.to);
+}
+
+export function deleteSelection(): void {
+  if (!view) return;
+  const sel = view.state.selection.main;
+  if (sel.from === sel.to) return;
+  view.dispatch({
+    changes: { from: sel.from, to: sel.to },
+    selection: { anchor: sel.from },
+  });
+  focusAndSync();
+}
+
+async function copyText(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    // Clipboard API unavailable (older webview) — ignore.
+  }
+}
+
+export async function editorCopy(): Promise<void> {
+  const text = selectedText();
+  if (text) await copyText(text);
+}
+
+export async function editorCut(): Promise<void> {
+  const text = selectedText();
+  if (!text) return;
+  await copyText(text);
+  deleteSelection();
+}
+
+export async function editorPaste(): Promise<void> {
+  let text: string;
+  try {
+    text = await navigator.clipboard.readText();
+  } catch {
+    return; // clipboard read denied
+  }
+  if (text) insertAtCursor(text);
+}
+
+export function editorSelectAll(): void {
+  if (!view) return;
+  view.dispatch({
+    selection: { anchor: 0, head: view.state.doc.length },
+  });
+  view.focus();
+}
+
+export function arrayBufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let binary = "";
   const chunk = 0x8000;

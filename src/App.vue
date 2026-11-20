@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from "vue";
+import { listen } from "@tauri-apps/api/event";
 import { t } from "@/lib/i18n";
 import { settings } from "@/stores/settings";
-import { editor, flushSave } from "@/stores/editor";
+import { editor, flushSave, handleFileChangedEvent } from "@/stores/editor";
 import { ui } from "@/stores/ui";
+import { refreshTree } from "@/stores/workspace";
 import { createDocument } from "@/lib/ops";
 import TitleBar from "./components/TitleBar.vue";
 import Sidebar from "./components/Sidebar.vue";
@@ -17,6 +19,7 @@ import StatusBar from "./components/StatusBar.vue";
 import SettingsDialog from "./components/SettingsDialog.vue";
 import PromptDialog from "./components/PromptDialog.vue";
 import ContextMenu from "./components/ContextMenu.vue";
+import ImagePreview from "./components/ImagePreview.vue";
 import Icon from "./components/Icon.vue";
 
 function onKeydown(e: KeyboardEvent): void {
@@ -26,8 +29,41 @@ function onKeydown(e: KeyboardEvent): void {
   }
 }
 
-onMounted(() => document.addEventListener("keydown", onKeydown));
-onUnmounted(() => document.removeEventListener("keydown", onKeydown));
+// ===== Auto-refresh the tree on external FS changes =====
+// The Rust watcher emits "workspace-changed" (already debounced + diffed);
+// re-debounce briefly here to coalesce bursts across event deliveries.
+let treeRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+let unlistenFs: (() => void) | null = null;
+let unlistenFile: (() => void) | null = null;
+
+function scheduleTreeRefresh(): void {
+  if (!settings.workspace || treeRefreshTimer) return;
+  treeRefreshTimer = setTimeout(() => {
+    treeRefreshTimer = null;
+    void refreshTree();
+  }, 300);
+}
+
+onMounted(async () => {
+  document.addEventListener("keydown", onKeydown);
+  try {
+    unlistenFs = await listen("workspace-changed", scheduleTreeRefresh);
+    unlistenFile = await listen("file-changed", () => void handleFileChangedEvent());
+  } catch {
+    // Outside Tauri there is no event bridge; the tree stays manual.
+  }
+});
+onUnmounted(() => {
+  document.removeEventListener("keydown", onKeydown);
+  unlistenFs?.();
+  unlistenFile?.();
+  if (treeRefreshTimer) clearTimeout(treeRefreshTimer);
+});
+onUnmounted(() => {
+  document.removeEventListener("keydown", onKeydown);
+  unlistenFs?.();
+  if (treeRefreshTimer) clearTimeout(treeRefreshTimer);
+});
 </script>
 
 <template>
@@ -35,7 +71,9 @@ onUnmounted(() => document.removeEventListener("keydown", onKeydown));
     <TitleBar />
 
     <div v-if="settings.workspace" class="app-body">
-      <Sidebar />
+      <div class="sidebar-slot" :class="{ collapsed: settings.sidebarCollapsed }">
+        <Sidebar />
+      </div>
 
       <main class="main-area">
         <EditorHeader />
@@ -71,6 +109,7 @@ onUnmounted(() => document.removeEventListener("keydown", onKeydown));
     <SettingsDialog v-if="ui.settingsOpen" />
     <PromptDialog />
     <ContextMenu />
+    <ImagePreview />
   </div>
 </template>
 
@@ -85,6 +124,21 @@ onUnmounted(() => document.removeEventListener("keydown", onKeydown));
   display: flex;
   flex: 1;
   min-height: 0;
+}
+
+/* Sidebar collapse: animate the slot width so the editor area grows smoothly. */
+.sidebar-slot {
+  display: flex;
+  height: 100%;
+  width: var(--sidebar-width);
+  overflow: hidden;
+  transition: width 0.18s ease;
+}
+.sidebar-slot.collapsed {
+  width: 0;
+}
+.sidebar-slot .sidebar {
+  flex-shrink: 0;
 }
 
 .main-area {

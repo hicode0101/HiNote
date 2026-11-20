@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { t } from "@/lib/i18n";
 import { workspace } from "@/stores/workspace";
-import { settings, persistSettings } from "@/stores/settings";
+import { settings, persistSettings, toggleSidebar } from "@/stores/settings";
 import { baseName } from "@/lib/tauri";
 import { createDocument, createFolder } from "@/lib/ops";
 import TreeNodeItem from "./TreeNodeItem.vue";
@@ -65,6 +65,9 @@ function onTreeContext(e: MouseEvent): void {
         </button>
         <button class="icon-btn" :title="t('sidebar.newFolder')" @click="createFolder(settings.workspace!)">
           <Icon name="folderPlus" :size="16" />
+        </button>
+        <button class="icon-btn" :title="t('sidebar.collapse')" @click="toggleSidebar">
+          <Icon name="chevronLeft" :size="16" />
         </button>
       </div>
     </div>

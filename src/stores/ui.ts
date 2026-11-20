@@ -8,9 +8,17 @@ interface ContextMenuState {
   node: { name: string; path: string; kind: "dir" | "file" } | null;
 }
 
+interface FloatingMenuState {
+  visible: boolean;
+  x: number;
+  y: number;
+}
+
 export const ui = reactive({
   settingsOpen: false,
   contextMenu: { visible: false, x: 0, y: 0, node: null } as ContextMenuState,
+  /** Right-click menu inside the editor area (formatting/clipboard). */
+  editorMenu: { visible: false, x: 0, y: 0 } as FloatingMenuState,
 });
 
 export function openContextMenu(
@@ -18,6 +26,7 @@ export function openContextMenu(
   y: number,
   node: ContextMenuState["node"]
 ): void {
+  ui.editorMenu.visible = false;
   ui.contextMenu.visible = true;
   ui.contextMenu.x = x;
   ui.contextMenu.y = y;
@@ -26,4 +35,15 @@ export function openContextMenu(
 
 export function closeContextMenu(): void {
   ui.contextMenu.visible = false;
+}
+
+export function openEditorMenu(x: number, y: number): void {
+  ui.contextMenu.visible = false;
+  ui.editorMenu.visible = true;
+  ui.editorMenu.x = x;
+  ui.editorMenu.y = y;
+}
+
+export function closeEditorMenu(): void {
+  ui.editorMenu.visible = false;
 }

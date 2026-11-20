@@ -1,6 +1,7 @@
 pub mod commands;
 pub mod config;
 pub mod recent;
+pub mod watcher;
 
 use config::AppConfig;
 use tauri::Manager;
@@ -14,6 +15,8 @@ pub fn run() {
             app.manage(config::AppState {
                 config: std::sync::Mutex::new(cfg),
                 session_workspace: std::sync::Mutex::new(None),
+                watcher: std::sync::Mutex::new(None),
+                watched_file: std::sync::Mutex::new(None),
             });
             Ok(())
         })
@@ -32,7 +35,11 @@ pub fn run() {
             commands::rename_path,
             commands::delete_path,
             commands::path_exists,
+            commands::get_file_mtime,
+            commands::set_watched_file,
             commands::save_paste_image,
+            commands::save_image_as,
+            commands::copy_image_to_clipboard,
             commands::pick_directory,
             commands::pick_image_file,
             commands::reveal_in_explorer,

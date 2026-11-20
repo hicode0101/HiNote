@@ -4,6 +4,12 @@ version = "0.1.0"
 edition = "2021"
 description = "HiNote - a local-first markdown notebook"
 
+# The compiled deliverable must be named exactly `HiNote` (case-sensitive);
+# the package name stays lowercase because Rust crate names are required to be.
+[[bin]]
+name = "HiNote"
+path = "src/main.rs"
+
 [lib]
 name = "hinote_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
@@ -20,6 +26,15 @@ serde_json = "1"
 base64 = "0.22"
 rand = "0.9"
 chrono = "0.4"
+arboard = "3"
+notify = "7"
+image = { version = "0.25", default-features = false, features = [
+  "png",
+  "jpeg",
+  "gif",
+  "webp",
+  "bmp",
+] }
 
 [profile.release]
 codegen-units = 1

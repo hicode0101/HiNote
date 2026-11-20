@@ -34,7 +34,17 @@ fn is_markdown(p: &Path) -> bool {
     )
 }
 
-fn read_dir_recursive(dir: &Path, depth: usize) -> Result<Vec<TreeNode>, String> {
+fn is_image(p: &Path) -> bool {
+    matches!(
+        p.extension().and_then(|e| e.to_str()),
+        Some(ext) if matches!(
+            ext.to_ascii_lowercase().as_str(),
+            "png" | "jpg" | "jpeg" | "gif" | "webp" | "bmp" | "svg"
+        )
+    )
+}
+
+pub(crate) fn read_dir_recursive(dir: &Path, depth: usize) -> Result<Vec<TreeNode>, String> {
     // Hard depth cap to avoid pathological trees.
     if depth > 10 {
         return Ok(vec![]);
@@ -62,7 +72,7 @@ fn read_dir_recursive(dir: &Path, depth: usize) -> Result<Vec<TreeNode>, String>
                 kind: "dir".into(),
                 children,
             });
-        } else if file_type.is_file() && is_markdown(&path) {
+        } else if file_type.is_file() && (is_markdown(&path) || is_image(&path)) {
             files.push(TreeNode {
                 name,
                 path: path.to_string_lossy().to_string(),
@@ -125,14 +135,24 @@ pub(crate) fn workspace_root(state: &State<'_, AppState>) -> Result<PathBuf, Str
 }
 
 /// Register the workspace for the current session. Called by the frontend
-/// whenever a workspace is opened; file commands validate against it.
+/// whenever a workspace is opened; file commands validate against it, and a
+/// recursive FS watcher is (re)started for automatic tree refresh.
 #[tauri::command]
-pub fn set_session_workspace(state: State<'_, AppState>, path: String) -> Result<(), String> {
+pub fn set_session_workspace(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    path: String,
+) -> Result<(), String> {
     let p = PathBuf::from(&path);
     if !p.is_dir() {
         return Err("workspace_not_found".into());
     }
-    *state.session_workspace.lock().map_err(|e| e.to_string())? = Some(p);
+    *state.session_workspace.lock().map_err(|e| e.to_string())? = Some(p.clone());
+    // Replacing the session drops the previous watcher (its debounce thread
+    // exits when the event channel disconnects). Watch failures are tolerated.
+    if let Some(session) = crate::watcher::watch_workspace(&app, &p) {
+        *state.watcher.lock().map_err(|e| e.to_string())? = Some(session);
+    }
     Ok(())
 }
 
@@ -213,6 +233,27 @@ pub fn path_exists(path: String) -> Result<bool, String> {
     Ok(PathBuf::from(&path).exists())
 }
 
+/// Set the currently open note file for the FS watcher. `null` clears it.
+#[tauri::command]
+pub fn set_watched_file(state: State<'_, AppState>, path: Option<String>) -> Result<(), String> {
+    let mut guard = state.watched_file.lock().map_err(|e| e.to_string())?;
+    *guard = path.map(PathBuf::from);
+    Ok(())
+}
+
+/// Query a file's last modification time (Unix milliseconds); null when the
+/// file is missing or inaccessible. Used by the frontend to detect external
+/// changes and offer to reload the document.
+#[tauri::command]
+pub fn get_file_mtime(path: String) -> Option<u128> {
+    let modified = fs::metadata(&path).ok()?.modified().ok()?;
+    let ms = modified
+        .duration_since(std::time::UNIX_EPOCH)
+        .ok()?
+        .as_millis();
+    Some(ms)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -224,5 +265,15 @@ mod tests {
         assert!(ensure_within(root, Path::new(r"D:\ws")).is_ok());
         assert!(ensure_within(root, Path::new(r"D:\ws2\note.md")).is_err());
         assert!(ensure_within(root, Path::new(r"D:\ws\..\secret")).is_err());
+    }
+
+    #[test]
+    fn file_type_filters() {
+        assert!(is_markdown(Path::new("a.MD")));
+        assert!(!is_markdown(Path::new("a.png")));
+        assert!(is_image(Path::new("b.PNG")));
+        assert!(is_image(Path::new("b.jpeg")));
+        assert!(!is_image(Path::new("b.md")));
+        assert!(!is_image(Path::new("b.txt")));
     }
 }
