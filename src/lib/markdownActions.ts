@@ -173,6 +173,36 @@ export function deleteSelection(): void {
   focusAndSync();
 }
 
+// ===== 大小写转换（作用于选区，无选区时不动，避免误改与脏标记）=====
+
+function transformSelection(fn: (s: string) => string): void {
+  if (!view) return;
+  const sel = view.state.selection.main;
+  if (sel.from === sel.to) return;
+  const text = view.state.sliceDoc(sel.from, sel.to);
+  const replaced = fn(text);
+  view.dispatch({
+    changes: { from: sel.from, to: sel.to, insert: replaced },
+    selection: { anchor: sel.from, head: sel.from + replaced.length },
+  });
+  focusAndSync();
+}
+
+export function transformUpper(): void {
+  transformSelection((s) => s.toUpperCase());
+}
+
+export function transformLower(): void {
+  transformSelection((s) => s.toLowerCase());
+}
+
+/** 每个单词首字母大写、其余小写（Unicode 感知）。 */
+export function transformCapitalize(): void {
+  transformSelection((s) =>
+    s.toLowerCase().replace(/\p{L}+/gu, (w) => w.charAt(0).toUpperCase() + w.slice(1))
+  );
+}
+
 async function copyText(text: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(text);

@@ -22,7 +22,9 @@ function ok(): void {
 }
 
 function cancel(): void {
-  settleDialog(null);
+  // Confirm mode distinguishes the explicit 不保存 button ("cancel") from
+  // Esc / overlay dismissal (null = abort); prompts keep plain null.
+  settleDialog(dialogState.withInput ? null : "cancel");
 }
 
 function onInputKeydown(e: KeyboardEvent): void {

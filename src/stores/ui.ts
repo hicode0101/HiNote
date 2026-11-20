@@ -16,6 +16,7 @@ interface FloatingMenuState {
 
 export const ui = reactive({
   settingsOpen: false,
+  aboutOpen: false,
   contextMenu: { visible: false, x: 0, y: 0, node: null } as ContextMenuState,
   /** Right-click menu inside the editor area (formatting/clipboard). */
   editorMenu: { visible: false, x: 0, y: 0 } as FloatingMenuState,

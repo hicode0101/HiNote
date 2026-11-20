@@ -89,7 +89,9 @@
     "system": "Follow System",
     "light": "Light Mode",
     "dark": "Dark Mode",
-    "close": "Close"
+    "close": "Close",
+    "autosave": "Auto Save",
+    "autosaveHint": "Save changes automatically; switching files saves silently without asking"
   },
   "dialog": {
     "ok": "OK",
@@ -106,7 +108,11 @@
     "fileChangedDirtyBody": "\"{name}\" has been modified on disk, and there are unsaved changes. Reloading will discard them. Reload anyway?",
     "reloadConfirmTitle": "Reload File",
     "reloadConfirmBody": "\"{name}\" has unsaved changes. Reloading will discard them. Continue?",
-    "newTextTitle": "New Text File"
+    "newTextTitle": "New Text File",
+    "unsavedTitle": "Unsaved Changes",
+    "unsavedBody": "\"{name}\" has unsaved changes. Save them?",
+    "save": "Save",
+    "dontSave": "Don't Save"
   },
   "error": {
     "operationFailed": "Operation failed: {msg}",
@@ -152,7 +158,11 @@
     "hr": "Horizontal Rule",
     "reloadFile": "Reload File",
     "format": "Format",
-    "minify": "Minify"
+    "minify": "Minify",
+    "delete": "Delete",
+    "upper": "UPPERCASE",
+    "lower": "lowercase",
+    "capitalize": "Capitalize Each Word"
   },
   "format": {
     "formatted": "Formatted",
@@ -190,5 +200,11 @@
     "shell": "Shell",
     "ini": "INI/TOML",
     "batch": "Batch"
+  },
+  "about": {
+    "title": "About",
+    "desc": "A local-first Markdown notebook",
+    "homepage": "Homepage: ",
+    "author": "Author: "
   }
 }

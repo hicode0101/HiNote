@@ -15,6 +15,18 @@ export interface AppConfig {
   theme: string;
   editor_mode: string;
   sidebar_collapsed: boolean;
+  autosave: boolean;
+}
+
+/** Text file read result with detected encoding info. */
+export interface ReadOut {
+  text: string;
+  /** Encoding key: utf8 / utf8-bom / utf16le / utf16be / gbk / gb18030 / ansi:<label>. */
+  encoding: string;
+  /** Human-readable label for the status bar (e.g. "UTF-8 (BOM)", "GBK"). */
+  encoding_label: string;
+  /** True when unmappable bytes were replaced during ANSI decoding. */
+  lossy: boolean;
 }
 
 /** True when running inside the Tauri webview (vs. a plain browser). */
@@ -28,14 +40,16 @@ export const api = {
   readTree: (root: string) => invoke<TreeNode[]>("read_tree", { root }),
   setSessionWorkspace: (path: string) =>
     invoke<void>("set_session_workspace", { path }),
-  readFile: (path: string) => invoke<string>("read_file", { path }),
+  readFile: (path: string, forcedEncoding?: string) =>
+    invoke<ReadOut>("read_file", { path, forcedEncoding: forcedEncoding ?? null }),
   /** Raw bytes for binary viewers (PDF). */
   readBinaryFile: (path: string) => invoke<number[]>("read_binary_file", { path }),
   /** Run a formatter: "json.pretty" | "json.minify" | "xml.pretty" | "xml.minify". */
   formatText: (text: string, formatterId: string, indent?: number) =>
     invoke<string>("format_text", { text, formatterId, indent: indent ?? null }),
-  writeFile: (path: string, content: string) =>
-    invoke<void>("write_file", { path, content }),
+  /** `encoding` = key detected at open time; content is re-encoded to match. */
+  writeFile: (path: string, content: string, encoding?: string) =>
+    invoke<void>("write_file", { path, content, encoding: encoding ?? null }),
   createFile: (path: string, content: string) =>
     invoke<void>("create_file", { path, content }),
   createDir: (path: string) => invoke<void>("create_dir", { path }),
@@ -79,6 +93,10 @@ export const api = {
     invoke<void>("remove_recent_workspace", { path }),
   revealInExplorer: (path: string) =>
     invoke<void>("reveal_in_explorer", { path }),
+  /** App version from Cargo.toml (About dialog). */
+  appVersion: () => invoke<string>("get_version"),
+  /** Open a URL in the system browser. */
+  openUrl: (url: string) => invoke<void>("open_url", { url }),
 };
 
 /** Join a directory path with a child name, preserving the OS separator style. */

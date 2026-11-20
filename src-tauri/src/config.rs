@@ -19,6 +19,8 @@ pub struct AppConfig {
     pub editor_mode: String,
     /// Left tree panel hidden (editor maximized).
     pub sidebar_collapsed: bool,
+    /// Auto-save edits to disk (default off; Ctrl+S always works).
+    pub autosave: bool,
 }
 
 impl Default for AppConfig {
@@ -29,6 +31,7 @@ impl Default for AppConfig {
             theme: "system".into(),
             editor_mode: "classic".into(),
             sidebar_collapsed: false,
+            autosave: false,
         }
     }
 }

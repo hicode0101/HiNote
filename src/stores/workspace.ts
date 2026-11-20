@@ -1,8 +1,10 @@
 import { reactive } from "vue";
-import { api, TreeNode, isImagePath } from "@/lib/tauri";
+import { api, baseName, TreeNode, isImagePath } from "@/lib/tauri";
+import { t } from "@/lib/i18n";
 import { displayUrl } from "@/lib/imgSrc";
 import { settings, persistSettings } from "./settings";
-import { openFile, closeFile } from "./editor";
+import { editor, flushSave, openFile, closeFile } from "./editor";
+import { confirmDialog } from "./dialog";
 import { openImagePreview } from "./imgpreview";
 
 export const workspace = reactive({
@@ -121,6 +123,31 @@ export async function activateFile(path: string): Promise<void> {
   if (isImagePath(path)) {
     previewImageFile(path);
     return;
+  }
+  // Switching to a different file while the current one has unsaved edits:
+  // autosave on → save silently and proceed; autosave off → ask first
+  // (Esc/overlay dismiss keeps the current file).
+  if (
+    editor.dirty &&
+    editor.path &&
+    editor.path.toLowerCase() !== path.toLowerCase()
+  ) {
+    if (settings.autosave) {
+      await flushSave();
+    } else {
+      const save = await confirmDialog({
+        title: t("dialog.unsavedTitle"),
+        message: t("dialog.unsavedBody", { name: baseName(editor.path) }),
+        okText: t("dialog.save"),
+        cancelText: t("dialog.dontSave"),
+      });
+      if (save === null) return; // dismissed — stay on the current file
+      if (save) {
+        await flushSave();
+      } else {
+        editor.dirty = false; // discard pending edits
+      }
+    }
   }
   await openFile(path);
   workspace.activePath = path;

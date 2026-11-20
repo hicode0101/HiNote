@@ -7,6 +7,7 @@ export const icons: Record<string, string> = {
   chevronRight: `<path d="M9.5 5.5 16 12l-6.5 6.5"/>`,
   chevronDown: `<path d="M5.5 9.5 12 16l6.5-6.5"/>`,
   settings: `<path d="M4 7h8.2M16.8 7H20M4 17h3.2M11.8 17H20"/><circle cx="14.5" cy="7" r="2.3"/><circle cx="9.5" cy="17" r="2.3"/>`,
+  info: `<circle cx="12" cy="12" r="8.5"/><path d="M12 11.2v5"/><path d="M12 7.6h.01"/>`,
   dismiss: `<path d="M6 6l12 12M18 6 6 18"/>`,
   minimize: `<path d="M5 12h14"/>`,
   maximize: `<rect x="5.5" y="5.5" width="13" height="13" rx="1.8"/>`,

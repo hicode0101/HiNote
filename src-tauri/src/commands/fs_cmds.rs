@@ -186,20 +186,68 @@ pub fn set_session_workspace(
     Ok(())
 }
 
-#[tauri::command]
-pub fn read_file(state: State<'_, AppState>, path: String) -> Result<String, String> {
-    let root = workspace_root(&state)?;
-    let p = PathBuf::from(&path);
-    ensure_within(&root, &p)?;
-    fs::read_to_string(&p).map_err(|e| e.to_string())
+/// 文本读取结果：解码后的内容 + 检测/指定的编码。
+#[derive(Debug, Serialize)]
+pub struct ReadOut {
+    pub text: String,
+    /// Encoding key（`utf8` / `utf8-bom` / `utf16le` / `utf16be` /
+    /// `gbk` / `gb18030` / `ansi:<label>`），保存时原样回传以保持编码不变。
+    pub encoding: String,
+    pub encoding_label: String,
+    /// True when ANSI 解码出现无法映射的字节（已以替换字符容错）。
+    pub lossy: bool,
 }
 
+/// 读取文本文件：自动检测编码（BOM → UTF-8 → chardetng 启发式），GBK、
+/// UTF-16 等本地文件均可打开。`forced_encoding` 优先于自动检测。
 #[tauri::command]
-pub fn write_file(state: State<'_, AppState>, path: String, content: String) -> Result<(), String> {
+pub fn read_file(
+    state: State<'_, AppState>,
+    path: String,
+    forced_encoding: Option<String>,
+) -> Result<ReadOut, String> {
     let root = workspace_root(&state)?;
     let p = PathBuf::from(&path);
     ensure_within(&root, &p)?;
-    fs::write(&p, content).map_err(|e| e.to_string())
+    let bytes = fs::read(&p).map_err(|e| e.to_string())?;
+    let (encoding, lossy) = match forced_encoding
+        .as_deref()
+        .and_then(crate::commands::encoding::Encoding::from_key)
+    {
+        Some(enc) => (enc, false),
+        None => {
+            let detected = crate::commands::encoding::detect(&bytes);
+            let lossy = matches!(detected, crate::commands::encoding::Encoding::Ansi(_));
+            (detected, lossy)
+        }
+    };
+    let text = crate::commands::encoding::decode(&bytes, &encoding);
+    Ok(ReadOut {
+        text,
+        encoding: encoding.key(),
+        encoding_label: encoding.label(),
+        lossy,
+    })
+}
+
+/// 写入文本文件。`encoding` 为打开该文件时检测到的编码 key，按原编码回写
+/// （GBK 文件保存后仍是 GBK）；缺省 UTF-8。
+#[tauri::command]
+pub fn write_file(
+    state: State<'_, AppState>,
+    path: String,
+    content: String,
+    encoding: Option<String>,
+) -> Result<(), String> {
+    let root = workspace_root(&state)?;
+    let p = PathBuf::from(&path);
+    ensure_within(&root, &p)?;
+    let enc = encoding
+        .as_deref()
+        .and_then(crate::commands::encoding::Encoding::from_key)
+        .unwrap_or(crate::commands::encoding::Encoding::Utf8);
+    let bytes = crate::commands::encoding::encode(&content, &enc);
+    fs::write(&p, bytes).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

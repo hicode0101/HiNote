@@ -89,7 +89,9 @@
     "system": "跟随系统",
     "light": "浅色模式",
     "dark": "深色模式",
-    "close": "关闭"
+    "close": "关闭",
+    "autosave": "自动保存",
+    "autosaveHint": "输入与修改后自动保存；切换文件时直接保存，不再询问"
   },
   "dialog": {
     "ok": "确定",
@@ -106,7 +108,11 @@
     "fileChangedDirtyBody": "「{name}」已在磁盘上被修改，且当前有未保存的修改，重新加载将丢弃这些修改。是否重新加载？",
     "reloadConfirmTitle": "重新加载文件",
     "reloadConfirmBody": "「{name}」有未保存的修改，重新加载将丢弃这些修改。是否继续？",
-    "newTextTitle": "新建文本文件"
+    "newTextTitle": "新建文本文件",
+    "unsavedTitle": "未保存的修改",
+    "unsavedBody": "「{name}」有未保存的修改，是否保存？",
+    "save": "保存",
+    "dontSave": "不保存"
   },
   "error": {
     "operationFailed": "操作失败：{msg}",
@@ -130,7 +136,7 @@
   },
   "editmenu": {
     "undo": "撤销",
-    "redo": "重做",
+    "redo": "恢复",
     "cut": "剪切",
     "copy": "复制",
     "paste": "粘贴",
@@ -152,7 +158,11 @@
     "hr": "分割线",
     "reloadFile": "重新加载文件",
     "format": "格式化",
-    "minify": "压缩"
+    "minify": "压缩",
+    "delete": "删除",
+    "upper": "转大写",
+    "lower": "转小写",
+    "capitalize": "首字母大写其余小写"
   },
   "format": {
     "formatted": "格式化完成",
@@ -190,5 +200,11 @@
     "shell": "Shell",
     "ini": "INI/TOML",
     "batch": "Batch"
+  },
+  "about": {
+    "title": "关于",
+    "desc": "一款本地优先的 Markdown 笔记本",
+    "homepage": "官网：",
+    "author": "作者："
   }
 }

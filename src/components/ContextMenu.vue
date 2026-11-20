@@ -6,12 +6,12 @@ import { editor, reloadActiveFile } from "@/stores/editor";
 import { settings } from "@/stores/settings";
 import { refreshTree } from "@/stores/workspace";
 import { createDocument, createFolder, renameNode, deleteNode, revealNode } from "@/lib/ops";
-import { canFormat, formatDocument } from "@/lib/formatActions";
+import { formatDocument } from "@/lib/formatActions";
+import { langForPath } from "@/lib/languages";
 import {
   doUndo, doRedo, editorCut, editorCopy, editorPaste, editorSelectAll,
-  hasSelection, wrapSelection, setHeading, toggleQuote,
-  bulletList, numberedList, taskList, insertCodeBlock, insertLink,
-  insertTable, insertHorizontalRule,
+  hasSelection, deleteSelection, transformUpper, transformLower,
+  transformCapitalize,
 } from "@/lib/markdownActions";
 import Icon from "./Icon.vue";
 
@@ -70,60 +70,96 @@ const items = computed<MenuItem[]>(() => {
 const MENU_WIDTH = 220;
 const MENU_HEIGHT_EST = 44 * 6 + 16;
 
-// ===== Editor context menu items (formatting + clipboard, classic mode) =====
+// ===== Editor context menu — same structure as HiEditor's Edit menu =====
+// 撤销/恢复、剪贴板、大小写转换、格式化子菜单（json/xml）、重新加载文件。
 interface EditorMenuItem {
   key: string;
   label: string;
-  icon: string;
+  shortcut?: string;
   disabled?: boolean;
   separator?: boolean;
+  submenu?: EditorMenuItem[];
   action: () => void | Promise<void>;
+}
+
+function sep(key: string): EditorMenuItem {
+  return { key, label: "", separator: true, action: () => undefined };
 }
 
 const editorItems = computed<EditorMenuItem[]>(() => {
   const hasSel = hasSelection();
-  const formattable = canFormat(); // json/xml only
+  const lang = langForPath(editor.path);
+  const formattable = lang === "json" || lang === "xml";
+  // 与 EditorClassic 的快捷键一致：json 用 J，xml 用 L
+  const [prettyKey, minifyKey] =
+    lang === "xml"
+      ? ["Ctrl+Shift+L", "Ctrl+Alt+L"]
+      : ["Ctrl+Shift+J", "Ctrl+Alt+J"];
   return [
-    { key: "undo", label: t("editmenu.undo"), icon: "undo", action: () => doUndo() },
-    { key: "redo", label: t("editmenu.redo"), icon: "redo", action: () => doRedo() },
-    { key: "sep1", label: "", icon: "", separator: true, action: () => undefined },
-    { key: "cut", label: t("editmenu.cut"), icon: "edit", disabled: !hasSel, action: () => void editorCut() },
-    { key: "copy", label: t("editmenu.copy"), icon: "copy", disabled: !hasSel, action: () => void editorCopy() },
-    { key: "paste", label: t("editmenu.paste"), icon: "edit", action: () => void editorPaste() },
-    { key: "selectAll", label: t("editmenu.selectAll"), icon: "note", action: () => editorSelectAll() },
-    { key: "sep1b", label: "", icon: "", separator: true, action: () => undefined },
-    { key: "format", label: t("editmenu.format"), icon: "refresh", disabled: !formattable, action: () => void formatDocument(false) },
-    { key: "minify", label: t("editmenu.minify"), icon: "download", disabled: !formattable, action: () => void formatDocument(true) },
-    { key: "sep2", label: "", icon: "", separator: true, action: () => undefined },
-    { key: "bold", label: t("editmenu.bold"), icon: "bold", action: () => wrapSelection("**") },
-    { key: "italic", label: t("editmenu.italic"), icon: "italic", action: () => wrapSelection("*") },
-    { key: "strike", label: t("editmenu.strike"), icon: "strike", action: () => wrapSelection("~~") },
-    { key: "inlineCode", label: t("editmenu.inlineCode"), icon: "code", action: () => wrapSelection("`") },
-    { key: "sep3", label: "", icon: "", separator: true, action: () => undefined },
-    { key: "h1", label: t("editmenu.heading1"), icon: "note", action: () => setHeading(1) },
-    { key: "h2", label: t("editmenu.heading2"), icon: "note", action: () => setHeading(2) },
-    { key: "h3", label: t("editmenu.heading3"), icon: "note", action: () => setHeading(3) },
-    { key: "quote", label: t("editmenu.quote"), icon: "quote", action: () => toggleQuote() },
-    { key: "bullet", label: t("editmenu.bulletList"), icon: "ul", action: () => bulletList() },
-    { key: "numbered", label: t("editmenu.numberedList"), icon: "ol", action: () => numberedList() },
-    { key: "task", label: t("editmenu.taskList"), icon: "task", action: () => taskList() },
-    { key: "sep4", label: "", icon: "", separator: true, action: () => undefined },
-    { key: "link", label: t("editmenu.link"), icon: "link", action: () => insertLink() },
-    { key: "codeBlock", label: t("editmenu.codeBlock"), icon: "code", action: () => insertCodeBlock() },
-    { key: "table", label: t("editmenu.table"), icon: "table", action: () => insertTable() },
-    { key: "hr", label: t("editmenu.hr"), icon: "hr", action: () => insertHorizontalRule() },
-    { key: "sep5", label: "", icon: "", separator: true, action: () => undefined },
+    { key: "undo", label: t("editmenu.undo"), shortcut: "Ctrl+Z", action: () => doUndo() },
+    { key: "redo", label: t("editmenu.redo"), shortcut: "Ctrl+Y", action: () => doRedo() },
+    sep("sep1"),
+    { key: "selectAll", label: t("editmenu.selectAll"), shortcut: "Ctrl+A", action: () => editorSelectAll() },
+    { key: "cut", label: t("editmenu.cut"), shortcut: "Ctrl+X", disabled: !hasSel, action: () => void editorCut() },
+    { key: "copy", label: t("editmenu.copy"), shortcut: "Ctrl+C", disabled: !hasSel, action: () => void editorCopy() },
+    { key: "paste", label: t("editmenu.paste"), shortcut: "Ctrl+V", action: () => void editorPaste() },
+    { key: "delete", label: t("editmenu.delete"), shortcut: "Del", disabled: !hasSel, action: () => deleteSelection() },
+    sep("sep2"),
+    { key: "upper", label: t("editmenu.upper"), disabled: !hasSel, action: () => transformUpper() },
+    { key: "lower", label: t("editmenu.lower"), disabled: !hasSel, action: () => transformLower() },
+    { key: "capitalize", label: t("editmenu.capitalize"), disabled: !hasSel, action: () => transformCapitalize() },
+    sep("sep3"),
+    {
+      key: "format",
+      label: t("editmenu.format"),
+      disabled: !formattable,
+      submenu: [
+        { key: "formatPretty", label: t("editmenu.format"), shortcut: prettyKey, action: () => void formatDocument(false) },
+        { key: "formatMinify", label: t("editmenu.minify"), shortcut: minifyKey, action: () => void formatDocument(true) },
+      ],
+      action: () => undefined,
+    },
+    sep("sep4"),
     {
       key: "reload",
       label: t("editmenu.reloadFile"),
-      icon: "undo",
       disabled: !editor.path,
       action: () => void reloadActiveFile(),
     },
   ];
 });
 
-const EDITOR_MENU_HEIGHT_EST = 28 * editorItems.value.length + 16;
+const EDITOR_MENU_HEIGHT_EST = 28 * 16 + 16;
+
+// Hover flyout for the 格式化 submenu (fixed-position so the scrollable
+// editor menu doesn't clip it).
+const openSub = ref<{ items: EditorMenuItem[]; x: number; y: number } | null>(null);
+
+function onEditorItemEnter(item: EditorMenuItem, ev: MouseEvent): void {
+  if (!item.submenu || item.disabled) {
+    openSub.value = null;
+    return;
+  }
+  const r = (ev.currentTarget as HTMLElement).getBoundingClientRect();
+  openSub.value = {
+    items: item.submenu,
+    x: Math.min(r.right - 3, window.innerWidth - MENU_WIDTH - 8),
+    y: Math.min(r.top - 5, window.innerHeight - 100),
+  };
+}
+
+function runEditor(item: EditorMenuItem): void {
+  if (item.separator || item.disabled || item.submenu) return;
+  closeEditorMenu();
+  void item.action();
+}
+
+function runSub(item: EditorMenuItem): void {
+  if (item.separator || item.disabled) return;
+  openSub.value = null;
+  closeEditorMenu();
+  void item.action();
+}
 
 watch(
   () => ui.contextMenu.visible,
@@ -149,6 +185,8 @@ watch(
         x: Math.min(ui.editorMenu.x, window.innerWidth - MENU_WIDTH - 8),
         y: Math.min(ui.editorMenu.y, window.innerHeight - h - 8),
       };
+    } else {
+      openSub.value = null;
     }
   }
 );
@@ -157,12 +195,6 @@ function run(item: MenuItem): void {
   if (item.separator) return;
   closeContextMenu();
   item.action();
-}
-
-function runEditor(item: EditorMenuItem): void {
-  if (item.separator || item.disabled) return;
-  closeEditorMenu();
-  void item.action();
 }
 
 function onDocMouseDown(e: MouseEvent): void {
@@ -228,13 +260,37 @@ onUnmounted(() => {
           <div v-if="item.separator" class="ctx-sep"></div>
           <button
             v-else
-            class="ctx-item"
-            :class="{ disabled: item.disabled }"
+            class="ctx-item editor-item"
+            :class="{ disabled: item.disabled, 'has-sub': item.submenu && !item.disabled }"
             :disabled="item.disabled"
             @click="runEditor(item)"
+            @mouseenter="onEditorItemEnter(item, $event)"
           >
-            <Icon :name="item.icon" :size="16" class="ctx-icon" />
-            <span>{{ item.label }}</span>
+            <span class="ctx-label">{{ item.label }}</span>
+            <span v-if="item.shortcut" class="ctx-shortcut">{{ item.shortcut }}</span>
+            <Icon v-else-if="item.submenu" name="chevronRight" :size="14" class="ctx-arrow" />
+          </button>
+        </template>
+      </div>
+    </transition>
+
+    <transition name="pop">
+      <div
+        v-if="ui.editorMenu.visible && openSub"
+        class="ctx-menu editor-submenu"
+        :style="{ left: openSub.x + 'px', top: openSub.y + 'px' }"
+      >
+        <template v-for="item in openSub.items" :key="item.key">
+          <div v-if="item.separator" class="ctx-sep"></div>
+          <button
+            v-else
+            class="ctx-item editor-item"
+            :class="{ disabled: item.disabled }"
+            :disabled="item.disabled"
+            @click="runSub(item)"
+          >
+            <span class="ctx-label">{{ item.label }}</span>
+            <span v-if="item.shortcut" class="ctx-shortcut">{{ item.shortcut }}</span>
           </button>
         </template>
       </div>
@@ -303,6 +359,35 @@ onUnmounted(() => {
 }
 .ctx-item.danger .ctx-icon {
   color: var(--danger);
+}
+
+/* Editor items: HiEditor style — plain label + right-aligned shortcut. */
+.editor-item {
+  justify-content: space-between;
+  gap: 24px;
+}
+.editor-item .ctx-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ctx-shortcut {
+  flex-shrink: 0;
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+.editor-item.has-sub .ctx-label {
+  color: var(--text-primary);
+}
+.ctx-arrow {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+.editor-submenu {
+  width: 220px;
+  padding: 5px;
 }
 
 .ctx-sep {

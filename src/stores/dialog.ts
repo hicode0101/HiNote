@@ -52,7 +52,8 @@ export function confirmDialog(opts: PromptOptions): Promise<boolean | null> {
     dialogState.okText = opts.okText ?? "";
     dialogState.cancelText = opts.cancelText ?? "";
     dialogState.danger = opts.danger ?? false;
-    dialogState.resolver = (v) => resolve(v === null ? null : v !== null && v !== "");
+    // "ok" → true, "cancel" (取消按钮) → false, null (Esc / 遮罩) → null
+    dialogState.resolver = (v) => resolve(v === null ? null : v === "ok");
   });
 }
 

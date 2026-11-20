@@ -45,6 +45,8 @@ pub fn run() {
             commands::pick_directory,
             commands::pick_image_file,
             commands::reveal_in_explorer,
+            commands::get_version,
+            commands::open_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

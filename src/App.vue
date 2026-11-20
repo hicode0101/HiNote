@@ -18,6 +18,7 @@ import PreviewPane from "./components/PreviewPane.vue";
 import PdfViewer from "./components/PdfViewer.vue";
 import StatusBar from "./components/StatusBar.vue";
 import SettingsDialog from "./components/SettingsDialog.vue";
+import AboutDialog from "./components/AboutDialog.vue";
 import PromptDialog from "./components/PromptDialog.vue";
 import ContextMenu from "./components/ContextMenu.vue";
 import ImagePreview from "./components/ImagePreview.vue";
@@ -45,8 +46,17 @@ function scheduleTreeRefresh(): void {
   }, 300);
 }
 
+// External edits usually happen while HiNote is in the background, so the
+// one-shot "file-changed" event gets dropped by the hasFocus guard in the
+// store. Re-check the mtime baseline when the window regains focus; the
+// handler is idempotent (same-mtime return + watchBusy re-entry guard).
+function onWindowFocus(): void {
+  void handleFileChangedEvent();
+}
+
 onMounted(async () => {
   document.addEventListener("keydown", onKeydown);
+  window.addEventListener("focus", onWindowFocus);
   try {
     unlistenFs = await listen("workspace-changed", scheduleTreeRefresh);
     unlistenFile = await listen("file-changed", () => void handleFileChangedEvent());
@@ -56,6 +66,7 @@ onMounted(async () => {
 });
 onUnmounted(() => {
   document.removeEventListener("keydown", onKeydown);
+  window.removeEventListener("focus", onWindowFocus);
   unlistenFs?.();
   unlistenFile?.();
   if (treeRefreshTimer) clearTimeout(treeRefreshTimer);
@@ -111,6 +122,7 @@ onUnmounted(() => {
     </div>
 
     <SettingsDialog v-if="ui.settingsOpen" />
+    <AboutDialog v-if="ui.aboutOpen" />
     <PromptDialog />
     <ContextMenu />
     <ImagePreview />

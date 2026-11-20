@@ -1,3 +1,4 @@
+pub mod encoding;
 pub mod fs_cmds;
 pub mod format_cmd;
 pub mod image_cmd;

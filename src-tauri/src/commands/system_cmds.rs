@@ -57,3 +57,15 @@ pub async fn pick_image_file(app: AppHandle) -> Result<Option<String>, String> {
 pub fn reveal_in_explorer(path: String) -> Result<(), String> {
     reveal_item_in_dir(&path).map_err(|e| e.to_string())
 }
+
+/// App version from Cargo.toml (single source of truth, About dialog).
+#[tauri::command]
+pub fn get_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
+
+/// Open a URL in the system browser (About dialog homepage link).
+#[tauri::command]
+pub fn open_url(url: String) -> Result<(), String> {
+    tauri_plugin_opener::open_url(&url, None::<&str>).map_err(|e| e.to_string())
+}

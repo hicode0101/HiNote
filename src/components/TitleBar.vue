@@ -54,6 +54,13 @@ function close(): void {
       >
         <Icon name="settings" :size="16" />
       </button>
+      <button
+        class="tb-btn"
+        :title="t('about.title')"
+        @click="ui.aboutOpen = true"
+      >
+        <Icon name="info" :size="16" />
+      </button>
       <div class="caption-group">
         <button class="tb-btn caption" @click="minimize">
           <Icon name="minimize" :size="14" />

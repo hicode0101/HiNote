@@ -1,7 +1,8 @@
-import { reactive } from "vue";
+import { reactive, watch } from "vue";
 import { api, baseName } from "@/lib/tauri";
 import { langForPath } from "@/lib/languages";
 import { t } from "@/lib/i18n";
+import { settings } from "./settings";
 import { confirmDialog, dialogState } from "./dialog";
 import { ui } from "./ui";
 
@@ -18,6 +19,10 @@ export const editor = reactive({
   generation: 0,
   /** Disk mtime of the last read/write; the external-change baseline. */
   savedMtime: null as number | null,
+  /** Encoding key detected at open time; reused on save to preserve it. */
+  encoding: "utf8" as string,
+  /** Human-readable label shown in the status bar. */
+  encodingLabel: "" as string,
 });
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -52,19 +57,23 @@ export async function openFile(path: string): Promise<void> {
     editor.view = "edit";
     editor.cursor = { line: 1, col: 1 };
     editor.savedMtime = await readMtime(path);
+    editor.encoding = "utf8";
+    editor.encodingLabel = "";
     api.setWatchedFile(path).catch(() => {});
     return;
   }
   try {
-    const content = await api.readFile(path);
+    const out = await api.readFile(path);
     editor.generation++;
     editor.path = path;
-    editor.content = content;
-    editor.savedContent = content;
+    editor.content = out.text;
+    editor.savedContent = out.text;
     editor.dirty = false;
     editor.view = "edit";
     editor.cursor = { line: 1, col: 1 };
     editor.savedMtime = await readMtime(path);
+    editor.encoding = out.encoding;
+    editor.encodingLabel = out.encoding_label;
     api.setWatchedFile(path).catch(() => {});
   } catch {
     // Keep the previous state; the tree item may be stale.
@@ -79,13 +88,15 @@ export async function closeFile(): Promise<void> {
   editor.savedContent = "";
   editor.dirty = false;
   editor.savedMtime = null;
+  editor.encoding = "utf8";
+  editor.encodingLabel = "";
   api.setWatchedFile(null).catch(() => {});
 }
 
 export function onContentChange(content: string): void {
   editor.content = content;
   editor.dirty = content !== editor.savedContent;
-  scheduleSave();
+  if (settings.autosave) scheduleSave();
 }
 
 function scheduleSave(): void {
@@ -96,6 +107,18 @@ function scheduleSave(): void {
   }, 600);
 }
 
+// Turning autosave off cancels a pending debounced save (edits stay dirty
+// until Ctrl+S or the switch-file confirmation).
+watch(
+  () => settings.autosave,
+  (on) => {
+    if (!on && saveTimer) {
+      clearTimeout(saveTimer);
+      saveTimer = null;
+    }
+  }
+);
+
 export async function flushSave(): Promise<void> {
   if (saveTimer) {
     clearTimeout(saveTimer);
@@ -105,7 +128,7 @@ export async function flushSave(): Promise<void> {
   if (langForPath(editor.path) === "pdf") return; // read-only viewer, never written
   editor.saving = true;
   try {
-    await api.writeFile(editor.path, editor.content);
+    await api.writeFile(editor.path, editor.content, editor.encoding);
     editor.savedContent = editor.content;
     editor.dirty = false;
     editor.savedMtime = await readMtime(editor.path);
@@ -119,12 +142,14 @@ export async function reloadFromDisk(): Promise<void> {
   if (!editor.path) return;
   const path = editor.path;
   try {
-    const content = await api.readFile(path);
+    const out = await api.readFile(path);
     editor.generation++;
-    editor.content = content;
-    editor.savedContent = content;
+    editor.content = out.text;
+    editor.savedContent = out.text;
     editor.dirty = false;
     editor.savedMtime = await readMtime(path);
+    editor.encoding = out.encoding;
+    editor.encodingLabel = out.encoding_label;
   } catch {
     // File may have been deleted; keep the current state.
   }

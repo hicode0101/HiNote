@@ -59,6 +59,11 @@ function setView(view: "edit" | "preview"): void {
           <span class="crumb" :class="{ muted: i < breadcrumbs.length - 1 }">
             {{ seg }}
           </span>
+          <span
+            v-if="i === breadcrumbs.length - 1 && editor.dirty"
+            class="dirty-dot"
+            :title="t('editor.unsaved')"
+          ></span>
         </template>
       </template>
       <span v-else class="crumb muted">{{ t("app.allNotes") }}</span>
@@ -146,6 +151,15 @@ function setView(view: "edit" | "preview"): void {
 .crumb-sep {
   color: var(--text-tertiary);
   flex-shrink: 0;
+}
+
+/* Unsaved-changes marker after the filename crumb. */
+.dirty-dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
 }
 
 .header-right {

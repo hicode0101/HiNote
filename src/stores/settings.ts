@@ -14,6 +14,8 @@ export const settings = reactive({
   editorMode: "classic" as EditorMode,
   /** Left tree hidden to maximize the editor area (persisted). */
   sidebarCollapsed: false,
+  /** Auto-save edits to disk (persisted; default off, Ctrl+S always works). */
+  autosave: false,
 });
 
 export async function loadSettings(): Promise<void> {
@@ -24,6 +26,7 @@ export async function loadSettings(): Promise<void> {
     settings.theme = (cfg.theme as ThemeOption) || "system";
     settings.editorMode = (cfg.editor_mode as EditorMode) || "classic";
     settings.sidebarCollapsed = !!cfg.sidebar_collapsed;
+    settings.autosave = !!cfg.autosave;
   } catch {
     // Running outside Tauri (browser smoke test) — keep defaults.
   }
@@ -39,6 +42,7 @@ export async function persistSettings(): Promise<void> {
     theme: settings.theme,
     editor_mode: settings.editorMode,
     sidebar_collapsed: settings.sidebarCollapsed,
+    autosave: settings.autosave,
   };
   try {
     await api.saveConfig(cfg);
@@ -73,5 +77,10 @@ export async function updateEditorMode(mode: EditorMode): Promise<void> {
 export async function updateImagesDir(dir: string): Promise<void> {
   const trimmed = dir.trim().replace(/[\\/]+$/, "");
   settings.imagesDir = trimmed || "images";
+  await persistSettings();
+}
+
+export async function updateAutosave(on: boolean): Promise<void> {
+  settings.autosave = on;
   await persistSettings();
 }

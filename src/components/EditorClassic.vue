@@ -162,7 +162,7 @@ const batchLang = StreamLanguage.define({
 });
 
 const langResolver: Record<string, () => Extension> = {
-  markdown: () => markdown({ codeLanguages: languages, base: markdownLanguage }),
+  md: () => markdown({ codeLanguages: languages, base: markdownLanguage }),
   json: () => json(),
   xml: () => xml(),
   html: () => html(),

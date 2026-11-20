@@ -7,6 +7,7 @@ import {
   updateTheme,
   updateLanguage,
   updateImagesDir,
+  updateAutosave,
 } from "@/stores/settings";
 import Icon from "./Icon.vue";
 
@@ -23,6 +24,10 @@ function onImagesDirInput(): void {
 
 function onImagesDirBlur(): void {
   imagesDirInput.value = settings.imagesDir;
+}
+
+function toggleAutosave(): void {
+  void updateAutosave(!settings.autosave);
 }
 
 function onKeydown(e: KeyboardEvent): void {
@@ -94,6 +99,23 @@ onUnmounted(() => document.removeEventListener("keydown", onKeydown));
                 <option value="light">{{ t("settings.light") }}</option>
                 <option value="dark">{{ t("settings.dark") }}</option>
               </select>
+            </div>
+
+            <!-- Autosave -->
+            <div class="setting-row">
+              <div class="row-text">
+                <div class="row-label">{{ t("settings.autosave") }}</div>
+                <div class="row-hint">{{ t("settings.autosaveHint") }}</div>
+              </div>
+              <button
+                class="switch"
+                :class="{ on: settings.autosave }"
+                role="switch"
+                :aria-checked="settings.autosave"
+                @click="toggleAutosave"
+              >
+                <span class="knob"></span>
+              </button>
             </div>
           </div>
 
@@ -181,6 +203,39 @@ onUnmounted(() => document.removeEventListener("keydown", onKeydown));
 
 .dir-input {
   width: 180px;
+}
+
+/* Toggle switch (autosave) */
+.switch {
+  position: relative;
+  flex-shrink: 0;
+  width: 42px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--stroke-strong);
+  border-radius: 11px;
+  background: var(--bg-subtle);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.switch .knob {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--bg-layer);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease;
+}
+.switch.on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.switch.on .knob {
+  transform: translateX(20px);
+  background: var(--accent-text);
 }
 
 .panel-footer {

@@ -17,6 +17,9 @@ const langLabel = computed(() => {
   const lang = langForPath(editor.path);
   return lang ? t(`lang.${lang}`) : "";
 });
+
+// Detected encoding of the open file (backend ReadOut); UTF-8 fallback.
+const encodingLabel = computed(() => editor.encodingLabel || "UTF-8");
 </script>
 
 <template>
@@ -35,7 +38,7 @@ const langLabel = computed(() => {
       <span class="divider"></span>
       <span class="item">{{ t("status.lf") }}</span>
       <span class="divider"></span>
-      <span class="item">{{ t("status.utf8") }}</span>
+      <span class="item">{{ encodingLabel }}</span>
     </div>
   </footer>
 </template>
