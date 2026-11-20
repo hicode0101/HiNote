@@ -4,10 +4,17 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/sync-version.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/sync-version.mjs",
     "build": "vue-tsc --noEmit && vite build",
+    "typecheck": "vue-tsc --noEmit",
     "preview": "vite preview",
     "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build",
+    "gen:icon": "node scripts/gen-icon.mjs && tauri icon scripts/icon.png",
+    "sync:version": "node scripts/sync-version.mjs",
     "postinstall": "node scripts/copy-vditor.mjs"
   },
   "dependencies": {

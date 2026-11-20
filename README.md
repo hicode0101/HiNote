@@ -107,11 +107,22 @@ npm install
 npm run tauri dev
 ```
 
+> Windows 下也可以使用根目录的 `build.bat` 一键脚本：
+> `build.bat dev`（开发）/ `build.bat release`（发布包）/ `build.bat debug`（快速调试包）/
+> `build.bat exe`（仅编译调试 exe）/ `build.bat check`（类型检查 + cargo check）。
+
 ### 构建发布版本
 
 ```bash
 npm run tauri build
+# 或 Windows 一键脚本
+build.bat release
 ```
+
+> **自动发布**：推送 `v*` 标签（如 `git tag v0.1.0 && git push origin v0.1.0`）会触发
+> GitHub Actions（`.github/workflows/release.yml`）自动打包 Windows / Linux / macOS
+> 安装包并发布 Release，附 Windows 绿色便携版 zip。版本号以 tag 为准，构建前自动
+> 同步进 `Cargo.toml` / `package.json`（版本唯一来源是 `Cargo.toml`）。
 
 构建产物位于 `src-tauri/target/release/bundle/` 下：
 
