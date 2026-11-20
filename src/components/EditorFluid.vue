@@ -5,12 +5,14 @@ import "vditor/dist/index.css";
 import { editor, onContentChange } from "@/stores/editor";
 import { resolvedTheme } from "@/lib/theme";
 import { i18n, t } from "@/lib/i18n";
-import { savePastedImage, registerEditorView, registerFluidPaste } from "@/lib/markdownActions";
-import { markdownToDisplay, markdownToSource, refToAbsPath, displayUrl, absToRef } from "@/lib/imgSrc";
+import { savePastedImage, registerEditorView, registerFluidPaste, registerFluidMenuActions } from "@/lib/markdownActions";
+import { markdownToDisplay, markdownToSource, refToAbsPath, displayUrl, absToRef, assetUrlToAbsPath } from "@/lib/imgSrc";
 import { hasTreeFileData, readTreeFileData, type TreeFileInfo } from "@/lib/dropRef";
 import { openFromContainer } from "@/stores/imgpreview";
 import { activateFile } from "@/stores/workspace";
-import { openEditorMenu } from "@/stores/ui";
+import { openEditorMenu, showToast } from "@/stores/ui";
+import { confirmDialog } from "@/stores/dialog";
+import { settings } from "@/stores/settings";
 import { hlAuto } from "@/lib/hljsAuto";
 import { api, baseName } from "@/lib/tauri";
 import PreviewSearch from "./PreviewSearch.vue";
@@ -81,11 +83,151 @@ function onHostDrop(e: DragEvent): void {
   insertTreeFileRef(info);
 }
 
-// Editable WYSIWYG surface: clipboard menu with copy AND paste.
+// ===== Deleting a workspace image offers to remove the physical file =====
+// When an <img> disappears from the WYSIWYG doc and its src points inside the
+// workspace, ask whether to delete the file on disk as well. Moves / duplicate
+// refs are ignored (the src is still in the doc), and programmatic re-renders
+// (setValue on file switch / reload) never trigger the prompt.
+
+let setValueGuard = false;
+let cutGuard = false;
+const pendingLost = new Set<string>();
+let lostTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Absolute path for an img src when it points inside the workspace, else null. */
+function workspaceImageFromSrc(src: string): string | null {
+  const abs = assetUrlToAbsPath(src);
+  if (!abs || !editor.path) return null;
+  const ws = settings.workspace?.replace(/[\\/]+$/, "").toLowerCase();
+  if (!ws) return null;
+  const lower = abs.toLowerCase();
+  if (lower !== ws && !lower.startsWith(ws + "\\") && !lower.startsWith(ws + "/")) return null;
+  return abs;
+}
+
+/**
+ * Suppress the removal watcher while vditor's DOM is updated from code.
+ * MutationObserver callbacks run as a microtask, so the flag is cleared on a
+ * macrotask — after the batch caused by `fn` has been delivered.
+ */
+function guardDomUpdate(fn: () => void): void {
+  setValueGuard = true;
+  try {
+    fn();
+  } finally {
+    setTimeout(() => (setValueGuard = false), 0);
+  }
+}
+
+function onHostCut(): void {
+  // Cutting is moving-to-clipboard, not deleting: don't offer file removal.
+  cutGuard = true;
+  setTimeout(() => (cutGuard = false), 0);
+}
+
+function scanRemovedImages(mutations: MutationRecord[]): void {
+  if (setValueGuard || cutGuard || !editor.path) return;
+  const removed = new Set<string>();
+  for (const m of mutations) {
+    for (const n of m.removedNodes) {
+      if (!(n instanceof HTMLElement)) continue;
+      const imgs = n.tagName === "IMG" ? [n as HTMLImageElement] : Array.from(n.querySelectorAll("img"));
+      for (const img of imgs) {
+        const src = img.getAttribute("src");
+        if (src) removed.add(src);
+      }
+    }
+  }
+  if (!removed.size) return;
+  // Still present anywhere in the doc = moved or duplicated — not a deletion.
+  const live = new Set<string>();
+  host.value?.querySelectorAll("img").forEach((img) => live.add(img.getAttribute("src") ?? ""));
+  for (const src of removed) if (!live.has(src)) pendingLost.add(src);
+  if (!pendingLost.size || lostTimer) return;
+  // Coalesce mutation bursts; re-check at flush time so a quick undo or an
+  // in-flight drag re-insertion cancels the prompt.
+  lostTimer = setTimeout(() => {
+    lostTimer = null;
+    const liveNow = new Set<string>();
+    host.value?.querySelectorAll("img").forEach((img) => liveNow.add(img.getAttribute("src") ?? ""));
+    const lost = [...pendingLost].filter((s) => !liveNow.has(s));
+    pendingLost.clear();
+    if (lost.length) void confirmDeleteImageFiles(lost);
+  }, 250);
+}
+
+async function confirmDeleteImageFiles(srcs: string[]): Promise<void> {
+  const targets: string[] = [];
+  const names: string[] = [];
+  for (const src of srcs) {
+    const abs = workspaceImageFromSrc(src);
+    if (abs) {
+      targets.push(abs);
+      names.push(baseName(abs));
+    }
+  }
+  if (!targets.length) return;
+  const list = new Intl.ListFormat(i18n.locale === "en-US" ? "en" : "zh").format(names);
+  const ok = await confirmDialog({
+    title: t("dialog.deleteImageTitle"),
+    message: t("dialog.deleteImageBody", { names: list }),
+    danger: true,
+  });
+  if (!ok) return;
+  let failed = 0;
+  for (const p of targets) {
+    try {
+      await api.deletePath(p);
+    } catch {
+      failed++;
+    }
+  }
+  if (failed) showToast(t("dialog.deleteImageFailed"));
+}
+
+// Editable WYSIWYG surface: copy / paste / delete. When the right-click
+// landed on an image, Delete also offers to remove the workspace file (the
+// removal goes through the image watcher above).
+let pendingMenuImage: HTMLImageElement | null = null;
+
 function onHostContextMenu(e: MouseEvent): void {
   e.preventDefault();
   e.stopPropagation();
-  openEditorMenu(e.clientX, e.clientY, { clipboardOnly: true, canPaste: true });
+  pendingMenuImage =
+    e.target instanceof Element ? (e.target.closest("img") as HTMLImageElement | null) : null;
+  const sel = window.getSelection();
+  const hasSel = !!(sel && sel.rangeCount && !sel.isCollapsed && host.value?.contains(sel.anchorNode));
+  openEditorMenu(e.clientX, e.clientY, {
+    canPaste: true,
+    fluid: true,
+    hasDelete: !!pendingMenuImage || hasSel,
+  });
+}
+
+/**
+ * Delete the context-menu target: the right-clicked image, or the current
+ * text selection. execCommand keeps vditor's content sync + undo native; the
+ * image removal then flows through the watcher's physical-file prompt.
+ */
+function fluidDeleteTarget(): void {
+  const img = pendingMenuImage;
+  pendingMenuImage = null;
+  const wysiwyg = host.value?.querySelector(".vditor-wysiwyg") as HTMLElement | null;
+  if (img && img.isConnected) {
+    wysiwyg?.focus();
+    const range = document.createRange();
+    range.selectNode(img);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+    if (document.execCommand("delete")) return;
+    // Fallback: remove directly and let vditor re-sync via a synthetic input.
+    img.remove();
+    wysiwyg?.dispatchEvent(new Event("input", { bubbles: true }));
+    return;
+  }
+  if (wysiwyg) wysiwyg.focus();
+  document.execCommand("delete");
 }
 
 // Ctrl+F: custom DOM search over the WYSIWYG content instead of WebView2's
@@ -198,19 +340,26 @@ onMounted(() => {
   // Link clicks open inside HiNote (or system browser), never navigate.
   host.value?.addEventListener("click", onHostClick, true);
   host.value?.addEventListener("contextmenu", onHostContextMenu);
+  host.value?.addEventListener("cut", onHostCut);
   document.addEventListener("keydown", onDocKeydown, true);
   // Clipboard-only menu paste target: insert at the vditor caret.
   registerFluidPaste((text) => vditor?.insertValue(text));
+  // Context-menu action: delete target (image / selection).
+  registerFluidMenuActions({ deleteTarget: fluidDeleteTarget });
   // Measure the toolbar (deferred: vditor builds its UI asynchronously).
   void nextTick(measureToolbar);
   // vditor renders bare/unknown-language fences as plaintext; re-highlight
-  // their preview panes with auto-detection whenever the DOM changes.
-  codeEnhancer = new MutationObserver(() => enhanceBareCode());
-  if (host.value) codeEnhancer.observe(host.value, { childList: true, subtree: true });
+  // their preview panes with auto-detection whenever the DOM changes. The
+  // same stream feeds the workspace-image deletion watcher.
+  domObserver = new MutationObserver((muts) => {
+    enhanceBareCode();
+    scanRemovedImages(muts);
+  });
+  if (host.value) domObserver.observe(host.value, { childList: true, subtree: true });
   enhanceBareCode();
 });
 
-let codeEnhancer: MutationObserver | null = null;
+let domObserver: MutationObserver | null = null;
 
 /** Auto-highlight bare/unknown-language code blocks that vditor left plain. */
 function enhanceBareCode(): void {
@@ -240,7 +389,7 @@ watch(
   () => {
     if (vditor) {
       boundGeneration = editor.generation;
-      vditor.setValue(displayValue());
+      guardDomUpdate(() => vditor!.setValue(displayValue()));
     }
   }
 );
@@ -251,7 +400,7 @@ watch(
   () => {
     if (vditor) {
       boundGeneration = editor.generation;
-      vditor.setValue(displayValue());
+      guardDomUpdate(() => vditor!.setValue(displayValue()));
     }
   }
 );
@@ -262,10 +411,12 @@ onUnmounted(() => {
   host.value?.removeEventListener("drop", onHostDrop, true);
   host.value?.removeEventListener("click", onHostClick, true);
   host.value?.removeEventListener("contextmenu", onHostContextMenu);
+  host.value?.removeEventListener("cut", onHostCut);
   document.removeEventListener("keydown", onDocKeydown, true);
   registerFluidPaste(null);
-  codeEnhancer?.disconnect();
-  codeEnhancer = null;
+  registerFluidMenuActions(null);
+  domObserver?.disconnect();
+  domObserver = null;
   vditor?.destroy();
   vditor = null;
 });

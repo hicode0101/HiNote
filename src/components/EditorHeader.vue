@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { t } from "@/lib/i18n";
 import { settings, updateEditorMode, toggleSidebar, type EditorMode } from "@/stores/settings";
 import { editor, isMarkdownFile } from "@/stores/editor";
+import { closeActiveFile } from "@/stores/workspace";
 import { baseName } from "@/lib/tauri";
 import { langForPath, langIcon } from "@/lib/languages";
 import Icon from "./Icon.vue";
@@ -67,6 +68,15 @@ function setView(view: "edit" | "preview"): void {
         </template>
       </template>
       <span v-else class="crumb muted">{{ t("app.allNotes") }}</span>
+      <!-- Close the open document and return to the empty view. -->
+      <button
+        v-if="editor.path"
+        class="icon-btn close-file-btn"
+        :title="t('editor.closeFile')"
+        @click="closeActiveFile"
+      >
+        <Icon name="dismiss" :size="14" />
+      </button>
     </nav>
 
     <div class="header-right">
@@ -160,6 +170,20 @@ function setView(view: "edit" | "preview"): void {
   height: 7px;
   border-radius: 50%;
   background: var(--accent);
+}
+
+/* Close-document button right after the breadcrumb. */
+.close-file-btn {
+  flex-shrink: 0;
+  margin-left: 4px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--text-tertiary);
+}
+.close-file-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
 }
 
 .header-right {

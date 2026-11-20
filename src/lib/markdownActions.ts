@@ -1,7 +1,11 @@
 import type { EditorView } from "@codemirror/view";
 import { undo, redo } from "@codemirror/commands";
 import { t } from "./i18n";
-import { api } from "./tauri";
+import { api, baseName, isImagePath } from "./tauri";
+import { refToAbsPath } from "./imgSrc";
+import { settings } from "@/stores/settings";
+import { confirmDialog } from "@/stores/dialog";
+import { showToast } from "@/stores/ui";
 import { editor } from "@/stores/editor";
 
 let view: EditorView | null = null;
@@ -178,6 +182,65 @@ export function deleteSelection(): void {
   focusAndSync();
 }
 
+// ===== Deleting a workspace image offers to remove the physical file =====
+// Classic (CodeMirror) edition: the trigger is strict — the selection must be
+// exactly one complete markdown image tag whose target resolves inside the
+// workspace. Partial selections / plain text deletions never prompt.
+
+/** Complete inline image tag: `![alt](path)`, `![alt](<path>)`, optional title. */
+const MD_IMAGE_FULL_RE = /^!\[([^\]]*)\]\(\s*(?:<([^>]*)>|([^\s)]+))(?:\s+"[^"]*")?\s*\)$/;
+
+/**
+ * When the current selection is exactly one complete markdown image tag whose
+ * target is a workspace-local image file, return that absolute path.
+ */
+export function selectionImageFile(): string | null {
+  if (!view || !editor.path) return null;
+  const sel = view.state.selection.main;
+  if (sel.from === sel.to) return null;
+  const m = MD_IMAGE_FULL_RE.exec(view.state.sliceDoc(sel.from, sel.to).trim());
+  if (!m) return null;
+  const dest = (m[2] ?? m[3] ?? "").trim();
+  if (!dest || /^(https?|data|asset|blob|file):/i.test(dest)) return null;
+  const abs = refToAbsPath(dest, editor.path);
+  if (!abs || !isImagePath(abs)) return null;
+  const ws = settings.workspace?.replace(/[\\/]+$/, "").toLowerCase();
+  if (!ws) return null;
+  const lower = abs.toLowerCase();
+  if (lower !== ws && !lower.startsWith(ws + "\\") && !lower.startsWith(ws + "/")) return null;
+  return abs;
+}
+
+/**
+ * Delete the selection; when it is exactly one workspace image tag, also ask
+ * whether to remove the physical file (the tag is removed first, mirroring
+ * the fluid editor's order — cancel keeps the file on disk).
+ */
+export async function deleteSelectionCheckingImage(): Promise<void> {
+  const v = view;
+  if (!v) return;
+  const sel = v.state.selection.main;
+  if (sel.from === sel.to) return;
+  const abs = selectionImageFile();
+  v.dispatch({
+    changes: { from: sel.from, to: sel.to },
+    selection: { anchor: sel.from },
+  });
+  focusAndSync();
+  if (!abs) return;
+  const ok = await confirmDialog({
+    title: t("dialog.deleteImageTitle"),
+    message: t("dialog.deleteImageBody", { names: baseName(abs) }),
+    danger: true,
+  });
+  if (!ok) return;
+  try {
+    await api.deletePath(abs);
+  } catch {
+    showToast(t("dialog.deleteImageFailed"));
+  }
+}
+
 // ===== 大小写转换（作用于选区，无选区时不动，避免误改与脏标记）=====
 
 function transformSelection(fn: (s: string) => string): void {
@@ -259,6 +322,18 @@ let fluidPaste: ((text: string) => void) | null = null;
 
 export function registerFluidPaste(fn: ((text: string) => void) | null): void {
   fluidPaste = fn;
+}
+
+/** Fluid context-menu hook: delete target, registered by EditorFluid. */
+let fluidDeleteAction: (() => void) | null = null;
+
+export function registerFluidMenuActions(hooks: { deleteTarget: () => void } | null): void {
+  fluidDeleteAction = hooks?.deleteTarget ?? null;
+}
+
+/** Delete the fluid editor's context-menu target (image or selection). */
+export function fluidDeleteSelection(): void {
+  fluidDeleteAction?.();
 }
 
 /** Read the clipboard and insert into the active editable surface. */

@@ -119,38 +119,51 @@ function previewImageFile(path: string): void {
   openImagePreview(images, Math.max(index, 0));
 }
 
+/**
+ * Resolve unsaved edits before leaving the current file: autosave on → save
+ * silently and proceed; autosave off → ask first. Returns false when the
+ * user dismissed the dialog (stay on the current file).
+ */
+async function settleUnsaved(): Promise<boolean> {
+  if (!(editor.dirty && editor.path)) return true;
+  if (settings.autosave) {
+    await flushSave();
+    return true;
+  }
+  const save = await confirmDialog({
+    title: t("dialog.unsavedTitle"),
+    message: t("dialog.unsavedBody", { name: baseName(editor.path) }),
+    okText: t("dialog.save"),
+    cancelText: t("dialog.dontSave"),
+  });
+  if (save === null) return false; // dismissed — stay on the current file
+  if (save) {
+    await flushSave();
+  } else {
+    editor.dirty = false; // discard pending edits
+  }
+  return true;
+}
+
 export async function activateFile(path: string): Promise<void> {
   if (isImagePath(path)) {
     previewImageFile(path);
     return;
   }
   // Switching to a different file while the current one has unsaved edits:
-  // autosave on → save silently and proceed; autosave off → ask first
-  // (Esc/overlay dismiss keeps the current file).
-  if (
-    editor.dirty &&
-    editor.path &&
-    editor.path.toLowerCase() !== path.toLowerCase()
-  ) {
-    if (settings.autosave) {
-      await flushSave();
-    } else {
-      const save = await confirmDialog({
-        title: t("dialog.unsavedTitle"),
-        message: t("dialog.unsavedBody", { name: baseName(editor.path) }),
-        okText: t("dialog.save"),
-        cancelText: t("dialog.dontSave"),
-      });
-      if (save === null) return; // dismissed — stay on the current file
-      if (save) {
-        await flushSave();
-      } else {
-        editor.dirty = false; // discard pending edits
-      }
-    }
+  // autosave on → save silently and proceed; autosave off → ask first.
+  if (editor.path && editor.path.toLowerCase() !== path.toLowerCase()) {
+    if (!(await settleUnsaved())) return;
   }
   await openFile(path);
   workspace.activePath = path;
+}
+
+/** Close button: leave the editor view and return to the empty state. */
+export async function closeActiveFile(): Promise<void> {
+  if (!(await settleUnsaved())) return;
+  await closeFile();
+  workspace.activePath = null;
 }
 
 export function removeOpenStateIfDeleted(path: string): void {

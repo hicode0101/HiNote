@@ -32,7 +32,7 @@ import { tags as t } from "@lezer/highlight";
 import { editor, onContentChange, flushSave, isMarkdownFile } from "@/stores/editor";
 import { openEditorMenu } from "@/stores/ui";
 import { resolvedTheme } from "@/lib/theme";
-import { registerEditorView, savePastedImage, insertAtCursor } from "@/lib/markdownActions";
+import { registerEditorView, savePastedImage, insertAtCursor, selectionImageFile, deleteSelectionCheckingImage } from "@/lib/markdownActions";
 import { formatDocument } from "@/lib/formatActions";
 import { langForPath } from "@/lib/languages";
 import { api } from "@/lib/tauri";
@@ -264,6 +264,12 @@ function baseExtensions(): Extension[] {
   return [
     history(),
     keymap.of([
+      // Deleting a selection that is exactly one workspace image tag offers
+      // to remove the physical file too. Listed before defaultKeymap so the
+      // interception wins; returns false for any other deletion (default
+      // char/selection removal, no prompt).
+      { key: "Backspace", run: deleteImageTagSelection },
+      { key: "Delete", run: deleteImageTagSelection },
       ...defaultKeymap,
       ...historyKeymap,
       indentWithTab,
@@ -368,6 +374,13 @@ function destroyView(): void {
 function onContextMenu(e: MouseEvent): void {
   e.preventDefault();
   openEditorMenu(e.clientX, e.clientY);
+}
+
+/** Backspace/Delete interceptor: full image-tag selection → file confirm flow. */
+function deleteImageTagSelection(): boolean {
+  if (!selectionImageFile()) return false;
+  void deleteSelectionCheckingImage();
+  return true;
 }
 
 async function onPaste(e: ClipboardEvent): Promise<void> {
