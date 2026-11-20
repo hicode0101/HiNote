@@ -4,6 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { t } from "@/lib/i18n";
 import { settings } from "@/stores/settings";
 import { editor, flushSave, handleFileChangedEvent, isMarkdownFile, isPdfFile } from "@/stores/editor";
+import { TREE_FILE_TYPE } from "@/lib/dropRef";
 import { toast, ui } from "@/stores/ui";
 import { refreshTree } from "@/stores/workspace";
 import { createDocument } from "@/lib/ops";
@@ -54,9 +55,26 @@ function onWindowFocus(): void {
   void handleFileChangedEvent();
 }
 
+// With Tauri's built-in drag-drop disabled, a stray drop (e.g. an external
+// file from Explorer) would navigate the webview away. Block everything that
+// isn't our internal tree-file payload; editor text drags keep working.
+function isTreeFileDrag(e: DragEvent): boolean {
+  return Array.from(e.dataTransfer?.types ?? []).includes(TREE_FILE_TYPE);
+}
+function onDocDragOver(e: DragEvent): void {
+  if (isTreeFileDrag(e)) return; // editor's own handlers decide
+  e.preventDefault();
+}
+function onDocDrop(e: DragEvent): void {
+  if (isTreeFileDrag(e)) return;
+  e.preventDefault();
+}
+
 onMounted(async () => {
   document.addEventListener("keydown", onKeydown);
   window.addEventListener("focus", onWindowFocus);
+  document.addEventListener("dragover", onDocDragOver, true);
+  document.addEventListener("drop", onDocDrop, true);
   try {
     unlistenFs = await listen("workspace-changed", scheduleTreeRefresh);
     unlistenFile = await listen("file-changed", () => void handleFileChangedEvent());
@@ -67,6 +85,8 @@ onMounted(async () => {
 onUnmounted(() => {
   document.removeEventListener("keydown", onKeydown);
   window.removeEventListener("focus", onWindowFocus);
+  document.removeEventListener("dragover", onDocDragOver, true);
+  document.removeEventListener("drop", onDocDrop, true);
   unlistenFs?.();
   unlistenFile?.();
   if (treeRefreshTimer) clearTimeout(treeRefreshTimer);

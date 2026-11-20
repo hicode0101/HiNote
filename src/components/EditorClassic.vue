@@ -8,7 +8,7 @@ import {
   historyKeymap,
   indentWithTab,
 } from "@codemirror/commands";
-import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
+import { search, highlightSelectionMatches } from "@codemirror/search";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { json } from "@codemirror/lang-json";
@@ -29,14 +29,18 @@ import { shell } from "@codemirror/legacy-modes/mode/shell";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
 import { csharp } from "@codemirror/legacy-modes/mode/clike";
 import { tags as t } from "@lezer/highlight";
-import { editor, onContentChange, flushSave } from "@/stores/editor";
+import { editor, onContentChange, flushSave, isMarkdownFile } from "@/stores/editor";
 import { openEditorMenu } from "@/stores/ui";
 import { resolvedTheme } from "@/lib/theme";
 import { registerEditorView, savePastedImage, insertAtCursor } from "@/lib/markdownActions";
 import { formatDocument } from "@/lib/formatActions";
 import { langForPath } from "@/lib/languages";
+import { api } from "@/lib/tauri";
+import { hasTreeFileData, readTreeFileData, refForTreeFile } from "@/lib/dropRef";
+import EditorSearch from "./EditorSearch.vue";
 
 const host = ref<HTMLElement | null>(null);
+const searchRef = ref<InstanceType<typeof EditorSearch> | null>(null);
 let cmView: EditorView | null = null;
 
 const themeCompartment = new Compartment();
@@ -191,14 +195,87 @@ function langExtension(path: string | null): Extension {
   return build ? build() : [];
 }
 
+// Drop a tree file onto the editor → insert a note-relative image/link ref.
+// Markdown notes only: elsewhere the drop is swallowed (no CM text insert of
+// the raw path). Handled before CodeMirror's own text-drop.
+function dropHandlers(): Extension {
+  return EditorView.domEventHandlers({
+    dragover: (event, _view) => {
+      if (hasTreeFileData(event.dataTransfer)) event.preventDefault();
+      return false;
+    },
+    drop: (event, view) => {
+      const info = readTreeFileData(event.dataTransfer);
+      if (!info) return false; // not ours — let CM handle normal text drops
+      if (!editor.path || !isMarkdownFile()) {
+        // Non-markdown target: no insertion at all.
+        event.preventDefault();
+        return true;
+      }
+      event.preventDefault();
+      const pos =
+        view.posAtCoords({ x: event.clientX, y: event.clientY }) ??
+        view.state.selection.main.head;
+      const insert = refForTreeFile(info, editor.path);
+      view.dispatch({
+        changes: { from: pos, insert },
+        selection: { anchor: pos + insert.length },
+        scrollIntoView: true,
+      });
+      view.focus();
+      return true;
+    },
+  });
+}
+
+const URL_RE = /(?:https?:\/\/|mailto:)[^\s<>()"'`]+/g;
+
+/** URL (if any) under `offset` within a line; trailing punctuation trimmed. */
+function urlAtOffset(text: string, offset: number): string | null {
+  URL_RE.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = URL_RE.exec(text))) {
+    if (offset >= m.index && offset <= m.index + m[0].length) {
+      return m[0].replace(/[.,;:!)\]]+$/, "");
+    }
+  }
+  return null;
+}
+
+// Ctrl/Cmd+click a URL in the source editor → system default browser
+// (plain click keeps normal caret behavior, like VS Code).
+function linkHandlers(): Extension {
+  return EditorView.domEventHandlers({
+    mousedown: (event, view) => {
+      if (event.button !== 0 || !(event.ctrlKey || event.metaKey)) return false;
+      const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+      if (pos == null) return false;
+      const line = view.state.doc.lineAt(pos);
+      const url = urlAtOffset(line.text, pos - line.from);
+      if (!url) return false;
+      event.preventDefault();
+      void api.openUrl(url).catch(() => {});
+      return true;
+    },
+  });
+}
+
 function baseExtensions(): Extension[] {
   return [
     history(),
     keymap.of([
       ...defaultKeymap,
       ...historyKeymap,
-      ...searchKeymap,
       indentWithTab,
+      // Search: custom VS Code-style overlay instead of CM's built-in panel.
+      {
+        key: "Mod-f",
+        preventDefault: true,
+        run: () => {
+          searchRef.value?.open();
+          return true;
+        },
+      },
       {
         key: "Mod-s",
         preventDefault: true,
@@ -248,7 +325,11 @@ function baseExtensions(): Extension[] {
     ]),
     EditorView.lineWrapping,
     highlightSelectionMatches(),
+    // Provides the searchQuery state used by setSearchQuery/findNext/replace.
+    search(),
     langExtension(editor.path),
+    dropHandlers(),
+    linkHandlers(),
     EditorView.updateListener.of((update) => {
       if (update.docChanged) {
         onContentChange(update.state.doc.toString());
@@ -343,5 +424,18 @@ onUnmounted(destroyView);
 </script>
 
 <template>
-  <div ref="host" class="cm-host"></div>
+  <div class="cm-wrap">
+    <div ref="host" class="cm-host"></div>
+    <EditorSearch ref="searchRef" />
+  </div>
 </template>
+
+<style scoped>
+.cm-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+</style>

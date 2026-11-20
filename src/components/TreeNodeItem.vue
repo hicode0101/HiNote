@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import type { TreeNode } from "@/lib/tauri";
 import { langIcon, langColorClass, type LangId } from "@/lib/languages";
+import { setTreeFileData } from "@/lib/dropRef";
 import { workspace, toggleExpand, activateFile } from "@/stores/workspace";
 import { openContextMenu } from "@/stores/ui";
 import Icon from "./Icon.vue";
@@ -45,6 +46,12 @@ function onContext(e: MouseEvent): void {
     kind: props.node.kind,
   });
 }
+
+// Files can be dragged into the editor to insert an image/link reference.
+function onDragStart(e: DragEvent): void {
+  if (isDir.value || !e.dataTransfer) return;
+  setTreeFileData(e.dataTransfer, props.node.path, props.node.name);
+}
 </script>
 
 <template>
@@ -53,8 +60,10 @@ function onContext(e: MouseEvent): void {
       class="tree-row"
       :class="{ active, dir: isDir }"
       :style="{ paddingLeft: 8 + depth * 18 + 'px' }"
+      :draggable="!isDir"
       @click="onClick"
       @contextmenu="onContext"
+      @dragstart="onDragStart"
     >
       <span class="twisty">
         <Icon

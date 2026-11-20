@@ -11,6 +11,11 @@ export function registerEditorView(v: EditorView | null): void {
   view = v;
 }
 
+/** Current CodeMirror view (null in fluid mode); used by the search overlay. */
+export function getEditorView(): EditorView | null {
+  return view;
+}
+
 function requireView(): EditorView {
   if (!view) throw new Error("editor not ready");
   return view;
@@ -239,6 +244,34 @@ export function editorSelectAll(): void {
     selection: { anchor: 0, head: view.state.doc.length },
   });
   view.focus();
+}
+
+// ===== Clipboard-only menu hooks (preview pane / fluid editor) =====
+
+/** Copy the DOM selection (preview/fluid surfaces, outside CodeMirror). */
+export async function copySelectionText(): Promise<void> {
+  const text = window.getSelection()?.toString() ?? "";
+  if (text) await copyText(text);
+}
+
+/** Paste hook registered by the fluid editor (vditor); CM is the fallback. */
+let fluidPaste: ((text: string) => void) | null = null;
+
+export function registerFluidPaste(fn: ((text: string) => void) | null): void {
+  fluidPaste = fn;
+}
+
+/** Read the clipboard and insert into the active editable surface. */
+export async function pasteFromClipboardIntoActive(): Promise<void> {
+  let text = "";
+  try {
+    text = await navigator.clipboard.readText();
+  } catch {
+    return; // clipboard read denied
+  }
+  if (!text) return;
+  if (fluidPaste) fluidPaste(text);
+  else if (view) insertAtCursor(text);
 }
 
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {

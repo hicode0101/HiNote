@@ -31,6 +31,11 @@ arboard = "3"
 notify = "7"
 encoding_rs = "0.8"
 chardetng = "0.1"
+
+[target.'cfg(windows)'.dependencies]
+# Versions must stay aligned with wry's to share the same type definitions.
+webview2-com = "0.39"
+windows = { version = "0.62", features = [] }
 image = { version = "0.25", default-features = false, features = [
   "png",
   "jpeg",

@@ -37,7 +37,7 @@ export function refToAbsPath(ref: string, notePath: string): string | null {
 }
 
 /** Make an absolute path relative to the note's directory when possible. */
-function absToRef(abs: string, notePath: string): string | null {
+export function absToRef(abs: string, notePath: string): string | null {
   const noteDir = notePath.replace(/[\\/][^\\/]+$/, "").replace(/[\\/]+$/, "");
   const lowerAbs = abs.toLowerCase();
   const lowerDir = noteDir.toLowerCase();

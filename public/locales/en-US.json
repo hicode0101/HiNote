@@ -206,5 +206,15 @@
     "desc": "A local-first Markdown notebook",
     "homepage": "Homepage: ",
     "author": "Author: "
+  },
+  "search": {
+    "placeholder": "Find",
+    "replacePlaceholder": "Replace with",
+    "replace": "Replace",
+    "replaceAll": "Replace All",
+    "caseSensitive": "Match Case",
+    "toggleReplace": "Toggle Replace",
+    "prev": "Previous Match (Shift+Enter)",
+    "next": "Next Match (Enter)"
   }
 }

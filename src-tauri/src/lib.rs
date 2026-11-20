@@ -6,6 +6,28 @@ pub mod watcher;
 use config::AppConfig;
 use tauri::Manager;
 
+/// Disable WebView2's built-in browser context menu at the engine level
+/// (ICoreWebView2Settings6::SetAreDefaultContextMenusEnabled). Frontend
+/// surfaces own their custom menus; areas without one simply get no menu.
+#[cfg(windows)]
+fn disable_webview_default_context_menu(window: &tauri::WebviewWindow) {
+  use webview2_com::Microsoft::Web::WebView2::Win32::ICoreWebView2Settings6;
+  use windows::core::Interface;
+  let _ = window.with_webview(move |webview| {
+    unsafe {
+      let Ok(core) = webview.controller().CoreWebView2() else {
+        return;
+      };
+      let Ok(settings) = core.Settings() else {
+        return;
+      };
+      if let Ok(settings6) = settings.cast::<ICoreWebView2Settings6>() {
+        let _ = settings6.SetAreDefaultContextMenusEnabled(false);
+      }
+    }
+  });
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -18,6 +40,10 @@ pub fn run() {
                 watcher: std::sync::Mutex::new(None),
                 watched_file: std::sync::Mutex::new(None),
             });
+            #[cfg(windows)]
+            if let Some(window) = app.get_webview_window("main") {
+                disable_webview_default_context_menu(&window);
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

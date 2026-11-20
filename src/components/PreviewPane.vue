@@ -1,18 +1,64 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import MarkdownIt from "markdown-it";
 import taskListsPlugin from "markdown-it-task-lists";
 import hljs from "highlight.js";
 import { refToAbsPath, displayUrl } from "@/lib/imgSrc";
+import { api } from "@/lib/tauri";
 import { editor } from "@/stores/editor";
+import { activateFile } from "@/stores/workspace";
+import { openEditorMenu } from "@/stores/ui";
 import { openFromContainer } from "@/stores/imgpreview";
 import { hlAuto } from "@/lib/hljsAuto";
+import PreviewSearch from "./PreviewSearch.vue";
+
+const scrollEl = ref<HTMLElement | null>(null);
+const searchRef = ref<InstanceType<typeof PreviewSearch> | null>(null);
 
 /** Double-click an image in the preview to open the gallery overlay. */
 function onDblClick(e: MouseEvent): void {
   const img = (e.target as Element).closest("img");
   const container = (e.currentTarget as Element).querySelector(".md-preview");
   if (img && container) openFromContainer(container as HTMLElement, img);
+}
+
+// Read-only surface: clipboard menu with copy only (paste stays grayed).
+function onContextMenu(e: MouseEvent): void {
+  e.preventDefault();
+  openEditorMenu(e.clientX, e.clientY, { clipboardOnly: true, canPaste: false });
+}
+
+// Ctrl+F opens our own preview search instead of WebView2's find bar.
+function onDocKey(e: KeyboardEvent): void {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "f") {
+    e.preventDefault();
+    e.stopPropagation();
+    void searchRef.value?.open();
+  }
+}
+
+onMounted(() => document.addEventListener("keydown", onDocKey, true));
+onUnmounted(() => document.removeEventListener("keydown", onDocKey, true));
+
+/**
+ * Links open inside HiNote: workspace files activate (image refs open the
+ * gallery), web links go to the system browser. Bare navigation (which would
+ * leave the app) is always prevented.
+ */
+function onClick(e: MouseEvent): void {
+  if (!(e.target instanceof Element)) return;
+  const a = e.target.closest("a");
+  if (!a) return;
+  const href = a.getAttribute("href") ?? "";
+  e.preventDefault();
+  if (!href) return;
+  if (/^(https?|mailto):/i.test(href)) {
+    void api.openUrl(href).catch(() => {});
+    return;
+  }
+  if (/^(data|asset|blob|file):/i.test(href) || !editor.path) return;
+  const abs = refToAbsPath(href, editor.path);
+  if (abs) void activateFile(abs);
 }
 
 // Common languages for auto-detection live in lib/hljsAuto (shared with the
@@ -77,12 +123,22 @@ const html = computed(() => md.render(editor.content));
 </script>
 
 <template>
-  <div class="preview-scroll" @dblclick="onDblClick">
-    <div class="md-preview" v-html="html"></div>
+  <div class="preview-root">
+    <div ref="scrollEl" class="preview-scroll" @dblclick="onDblClick" @click="onClick" @contextmenu="onContextMenu">
+      <div class="md-preview" v-html="html"></div>
+    </div>
+    <PreviewSearch ref="searchRef" :container="scrollEl" />
   </div>
 </template>
 
 <style scoped>
+.preview-root {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
 .preview-scroll {
   flex: 1;
   min-height: 0;

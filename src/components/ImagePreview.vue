@@ -128,6 +128,7 @@ async function saveImageAs(): Promise<void> {
           :class="{ grabbable: imgPreview.zoom > 1, noanim: dragging }"
           :src="currentImage()?.url ?? ''"
           :alt="currentImage()?.name ?? ''"
+          :title="currentImage()?.name ?? ''"
           :style="{ transform }"
           draggable="false"
           @pointerdown="onPointerDown"

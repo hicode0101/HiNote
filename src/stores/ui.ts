@@ -14,12 +14,19 @@ interface FloatingMenuState {
   y: number;
 }
 
+/** Editor context menu: full menu or clipboard-only (preview/fluid). */
+export interface EditorMenuState extends FloatingMenuState {
+  clipboardOnly: boolean;
+  /** Paste enabled (fluid editable) vs disabled (read-only preview). */
+  canPaste: boolean;
+}
+
 export const ui = reactive({
   settingsOpen: false,
   aboutOpen: false,
   contextMenu: { visible: false, x: 0, y: 0, node: null } as ContextMenuState,
   /** Right-click menu inside the editor area (formatting/clipboard). */
-  editorMenu: { visible: false, x: 0, y: 0 } as FloatingMenuState,
+  editorMenu: { visible: false, x: 0, y: 0, clipboardOnly: false, canPaste: false } as EditorMenuState,
 });
 
 export function openContextMenu(
@@ -38,11 +45,17 @@ export function closeContextMenu(): void {
   ui.contextMenu.visible = false;
 }
 
-export function openEditorMenu(x: number, y: number): void {
+export function openEditorMenu(
+  x: number,
+  y: number,
+  opts: { clipboardOnly?: boolean; canPaste?: boolean } = {}
+): void {
   ui.contextMenu.visible = false;
   ui.editorMenu.visible = true;
   ui.editorMenu.x = x;
   ui.editorMenu.y = y;
+  ui.editorMenu.clipboardOnly = !!opts.clipboardOnly;
+  ui.editorMenu.canPaste = !!opts.canPaste;
 }
 
 export function closeEditorMenu(): void {

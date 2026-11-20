@@ -11,7 +11,7 @@ import { langForPath } from "@/lib/languages";
 import {
   doUndo, doRedo, editorCut, editorCopy, editorPaste, editorSelectAll,
   hasSelection, deleteSelection, transformUpper, transformLower,
-  transformCapitalize,
+  transformCapitalize, copySelectionText, pasteFromClipboardIntoActive,
 } from "@/lib/markdownActions";
 import Icon from "./Icon.vue";
 
@@ -87,6 +87,16 @@ function sep(key: string): EditorMenuItem {
 }
 
 const editorItems = computed<EditorMenuItem[]>(() => {
+  // Clipboard-only menu (preview pane: copy enabled, paste grayed; fluid
+  // editor: both enabled). Recomputed on every open so the DOM-selection
+  // state is fresh.
+  if (ui.editorMenu.clipboardOnly) {
+    const sel = window.getSelection()?.toString() ?? "";
+    return [
+      { key: "copy", label: t("editmenu.copy"), shortcut: "Ctrl+C", disabled: !sel, action: () => void copySelectionText() },
+      { key: "paste", label: t("editmenu.paste"), shortcut: "Ctrl+V", disabled: !ui.editorMenu.canPaste, action: () => void pasteFromClipboardIntoActive() },
+    ];
+  }
   const hasSel = hasSelection();
   const lang = langForPath(editor.path);
   const formattable = lang === "json" || lang === "xml";
