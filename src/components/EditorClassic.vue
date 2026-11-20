@@ -11,12 +11,30 @@ import {
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
-import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { json } from "@codemirror/lang-json";
+import { xml } from "@codemirror/lang-xml";
+import { html } from "@codemirror/lang-html";
+import { css } from "@codemirror/lang-css";
+import { javascript } from "@codemirror/lang-javascript";
+import { python } from "@codemirror/lang-python";
+import { java } from "@codemirror/lang-java";
+import { cpp } from "@codemirror/lang-cpp";
+import { go } from "@codemirror/lang-go";
+import { rust } from "@codemirror/lang-rust";
+import { sql } from "@codemirror/lang-sql";
+import { php } from "@codemirror/lang-php";
+import { StreamLanguage, HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { yaml } from "@codemirror/legacy-modes/mode/yaml";
+import { shell } from "@codemirror/legacy-modes/mode/shell";
+import { properties } from "@codemirror/legacy-modes/mode/properties";
+import { csharp } from "@codemirror/legacy-modes/mode/clike";
 import { tags as t } from "@lezer/highlight";
 import { editor, onContentChange, flushSave } from "@/stores/editor";
 import { openEditorMenu } from "@/stores/ui";
 import { resolvedTheme } from "@/lib/theme";
 import { registerEditorView, savePastedImage, insertAtCursor } from "@/lib/markdownActions";
+import { formatDocument } from "@/lib/formatActions";
+import { langForPath } from "@/lib/languages";
 
 const host = ref<HTMLElement | null>(null);
 let cmView: EditorView | null = null;
@@ -118,6 +136,61 @@ function themeExtensions(): Extension[] {
   return [editorTheme(dark), syntaxHighlighting(dark ? darkHighlight : lightHighlight)];
 }
 
+// ===== 16 门代码语言 + JSON/XML（HiEditor 语言集合）=====
+// Official Lezer packages where available; legacy-modes StreamLanguage for
+// yaml/shell/ini/csharp, plus a hand-rolled batch lexer (no legacy mode).
+
+// Windows 批处理（.bat/.cmd）：legacy-modes 无此模式，内置轻量流式词法
+// （注释 ::/REM、@前缀、关键词、:标签、%VAR%/%1/%%p/!VAR! 变量、字符串、数字）
+const batchLang = StreamLanguage.define({
+  name: "batch",
+  token(stream) {
+    if (stream.eatSpace()) return null;
+    if (stream.match(/^::/)) { stream.skipToEnd(); return "comment"; }
+    if (stream.match(/^@\s*rem\b/i) || stream.match(/^rem\b/i)) { stream.skipToEnd(); return "comment"; }
+    if (stream.eat("@")) return "meta";
+    if (stream.match(/^(?:echo|setlocal|endlocal|set|if|else|for|in|do|goto|call|exit|shift|pause|not|exist|defined|errorlevel|equ|neq|lss|leq|gtr|geq|cd|chdir|md|mkdir|rd|rmdir|del|erase|copy|xcopy|robocopy|move|ren|rename|type|start|pushd|popd|title|cls|color|ver|vol|label|choice|find|findstr|sort|more|tree|attrib|tasklist|taskkill|net)\b/i)) return "keyword";
+    if (stream.match(/^:[A-Za-z_][\w.-]*/)) return "label";
+    if (stream.match(/^![^!\n]+!/)) return "variable";
+    if (stream.match(/^%%?[^%\s]+%?/)) return "variable";
+    if (stream.match(/^"(?:[^"\n]|"")*"/)) return "string";
+    if (stream.match(/^\d+/)) return "number";
+    stream.next();
+    return null;
+  },
+  languageData: { commentTokens: { line: "rem" } },
+});
+
+const langResolver: Record<string, () => Extension> = {
+  markdown: () => markdown({ codeLanguages: languages, base: markdownLanguage }),
+  json: () => json(),
+  xml: () => xml(),
+  html: () => html(),
+  css: () => css(),
+  javascript: () => javascript(),
+  typescript: () => javascript({ typescript: true, jsx: true }),
+  python: () => python(),
+  java: () => java(),
+  csharp: () => StreamLanguage.define(csharp),
+  cpp: () => cpp(),
+  go: () => go(),
+  rust: () => rust(),
+  sql: () => sql(),
+  php: () => php(),
+  yaml: () => StreamLanguage.define(yaml),
+  shell: () => StreamLanguage.define(shell),
+  ini: () => StreamLanguage.define(properties), // .ini/.cfg/.conf 键值语法（.toml 近似覆盖）
+  batch: () => batchLang,
+  txt: () => [],
+};
+
+function langExtension(path: string | null): Extension {
+  const lang = langForPath(path);
+  if (!lang) return [];
+  const build = langResolver[lang];
+  return build ? build() : [];
+}
+
 function baseExtensions(): Extension[] {
   return [
     history(),
@@ -134,10 +207,48 @@ function baseExtensions(): Extension[] {
           return true;
         },
       },
+      // JSON/XML 格式化与压缩（HiEditor 快捷键：Ctrl+Shift+J/L 格式化，
+      // Ctrl+Alt+J/L 压缩），仅对相应类型文件生效。
+      {
+        key: "Mod-Shift-j",
+        preventDefault: true,
+        run: () => {
+          if (langForPath(editor.path) !== "json") return false;
+          void formatDocument(false);
+          return true;
+        },
+      },
+      {
+        key: "Mod-Alt-j",
+        preventDefault: true,
+        run: () => {
+          if (langForPath(editor.path) !== "json") return false;
+          void formatDocument(true);
+          return true;
+        },
+      },
+      {
+        key: "Mod-Shift-l",
+        preventDefault: true,
+        run: () => {
+          if (langForPath(editor.path) !== "xml") return false;
+          void formatDocument(false);
+          return true;
+        },
+      },
+      {
+        key: "Mod-Alt-l",
+        preventDefault: true,
+        run: () => {
+          if (langForPath(editor.path) !== "xml") return false;
+          void formatDocument(true);
+          return true;
+        },
+      },
     ]),
     EditorView.lineWrapping,
     highlightSelectionMatches(),
-    markdown({ codeLanguages: languages, base: markdownLanguage }),
+    langExtension(editor.path),
     EditorView.updateListener.of((update) => {
       if (update.docChanged) {
         onContentChange(update.state.doc.toString());

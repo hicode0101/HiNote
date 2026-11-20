@@ -31,7 +31,8 @@
     "rename": "重命名",
     "delete": "删除",
     "reveal": "在资源管理器中显示",
-    "refresh": "刷新"
+    "refresh": "刷新",
+    "newText": "新建文本"
   },
   "editor": {
     "classic": "经典",
@@ -46,13 +47,13 @@
     "saving": "保存中…",
     "modeClassic": "经典模式",
     "modeFluid": "流畅模式",
-    "pasteImageFailed": "图片保存失败，请重试"
+    "pasteImageFailed": "图片保存失败，请重试",
+    "newText": "新建文本"
   },
   "status": {
     "line": "行",
     "col": "列",
     "chars": "字符",
-    "markdown": "Markdown",
     "lf": "LF",
     "utf8": "UTF-8"
   },
@@ -104,7 +105,8 @@
     "fileChangedBody": "「{name}」已在磁盘上被修改，是否重新加载？",
     "fileChangedDirtyBody": "「{name}」已在磁盘上被修改，且当前有未保存的修改，重新加载将丢弃这些修改。是否重新加载？",
     "reloadConfirmTitle": "重新加载文件",
-    "reloadConfirmBody": "「{name}」有未保存的修改，重新加载将丢弃这些修改。是否继续？"
+    "reloadConfirmBody": "「{name}」有未保存的修改，重新加载将丢弃这些修改。是否继续？",
+    "newTextTitle": "新建文本文件"
   },
   "error": {
     "operationFailed": "操作失败：{msg}",
@@ -148,6 +150,45 @@
     "codeBlock": "代码块",
     "table": "插入表格",
     "hr": "分割线",
-    "reloadFile": "重新加载文件"
+    "reloadFile": "重新加载文件",
+    "format": "格式化",
+    "minify": "压缩"
+  },
+  "format": {
+    "formatted": "格式化完成",
+    "minified": "压缩完成"
+  },
+  "pdf": {
+    "prevPage": "上一页",
+    "nextPage": "下一页",
+    "zoomIn": "放大",
+    "zoomOut": "缩小",
+    "fitWidth": "适应宽度",
+    "openFailed": "PDF 加载失败",
+    "loading": "加载中…"
+  },
+  "lang": {
+    "md": "Markdown",
+    "txt": "纯文本",
+    "json": "JSON",
+    "xml": "XML",
+    "pdf": "PDF",
+    "image": "图片",
+    "html": "HTML",
+    "css": "CSS",
+    "javascript": "JavaScript",
+    "typescript": "TypeScript",
+    "python": "Python",
+    "java": "Java",
+    "csharp": "C#",
+    "cpp": "C/C++",
+    "go": "Go",
+    "rust": "Rust",
+    "sql": "SQL",
+    "php": "PHP",
+    "yaml": "YAML",
+    "shell": "Shell",
+    "ini": "INI/TOML",
+    "batch": "Batch"
   }
 }

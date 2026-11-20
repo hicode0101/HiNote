@@ -30,6 +30,10 @@ function ensureMdExt(name: string): string {
   return /\.(md|markdown)$/i.test(name) ? name : `${name}.md`;
 }
 
+function ensureTxtExt(name: string): string {
+  return /\.txt$/i.test(name) ? name : `${name}.txt`;
+}
+
 async function uniqueTarget(dir: string, name: string): Promise<string> {
   const candidate = joinPath(dir, name);
   if (!(await api.pathExists(candidate))) return candidate;
@@ -43,10 +47,14 @@ async function uniqueTarget(dir: string, name: string): Promise<string> {
   throw new Error("name_exhausted");
 }
 
-export async function createDocument(parentDir: string): Promise<void> {
+export type NewFileKind = "md" | "txt";
+
+/** Create a new file from the tree menu: markdown note or plain text. */
+export async function createDocument(parentDir: string, kind: NewFileKind = "md"): Promise<void> {
+  const isMd = kind === "md";
   const name = await promptDialog({
-    title: t("dialog.newDocTitle"),
-    value: t("editor.newDoc"),
+    title: isMd ? t("dialog.newDocTitle") : t("dialog.newTextTitle"),
+    value: isMd ? t("editor.newDoc") : t("editor.newText"),
     placeholder: t("dialog.namePlaceholder"),
     okText: t("dialog.ok"),
     cancelText: t("dialog.cancel"),
@@ -54,10 +62,10 @@ export async function createDocument(parentDir: string): Promise<void> {
   if (name === null) return;
   const trimmed = name.trim();
   if (!trimmed) return;
-  const fileName = ensureMdExt(trimmed);
+  const fileName = isMd ? ensureMdExt(trimmed) : ensureTxtExt(trimmed);
   const target = await uniqueTarget(parentDir, fileName);
   try {
-    await api.createFile(target, `# ${stripMdExt(fileName)}\n`);
+    await api.createFile(target, isMd ? `# ${stripMdExt(fileName)}\n` : "");
     await refreshTree();
     expandPath(parentDir);
     await activateFile(target);
@@ -87,11 +95,11 @@ export async function createFolder(parentDir: string): Promise<void> {
 }
 
 export async function renameNode(node: NodeRef): Promise<void> {
-  const defaultName =
-    node.kind === "file" ? stripMdExt(node.name) : node.name;
+  // Files: full name including extension, so the suffix is editable too.
+  // Dirs: name as-is.
   const name = await promptDialog({
     title: t("dialog.renameTitle"),
-    value: defaultName,
+    value: node.name,
     placeholder: t("dialog.namePlaceholder"),
     okText: t("dialog.ok"),
     cancelText: t("dialog.cancel"),
@@ -99,14 +107,14 @@ export async function renameNode(node: NodeRef): Promise<void> {
   if (name === null) return;
   const trimmed = name.trim();
   if (!trimmed) return;
-  const newName = node.kind === "file" ? ensureMdExt(trimmed) : trimmed;
-  if (newName === node.name) return;
-  const target = joinPath(dirName(node.path), newName);
+  if (trimmed === node.name) return;
+  const target = joinPath(dirName(node.path), trimmed);
   try {
     await api.renamePath(node.path, target);
     await refreshTree();
-    if (editor.path === node.path) {
+    if (editor.path && editor.path.toLowerCase() === node.path.toLowerCase()) {
       editor.path = target;
+      api.setWatchedFile(target).catch(() => {}); // keep external-change watch on the new path
     }
   } catch (e) {
     console.error("renameNode failed", e);

@@ -45,4 +45,6 @@ export const icons: Record<string, string> = {
   copy: `<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 6V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h1"/>`,
   download: `<path d="M12 4v10M7.5 10.5 12 15l4.5-4.5"/><path d="M4.5 16.5v2a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-2"/>`,
   refresh: `<path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>`,
+  // Document with folded corner + PDF lettering
+  pdf: `<path d="M6.3 3.2h6.8c.26 0 .52.1.71.3l4.7 4.7c.19.18.29.44.29.7v10.6a1.5 1.5 0 0 1-1.5 1.5H6.3a1.5 1.5 0 0 1-1.5-1.5V4.7a1.5 1.5 0 0 1 1.5-1.5z"/><path d="M13.2 3.6V9h5.4"/><text x="7" y="16.4" font-size="7.4" font-weight="700" fill="currentColor" stroke="none" font-family="Segoe UI, sans-serif">P</text>`,
 };

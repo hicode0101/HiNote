@@ -11,6 +11,10 @@ pub struct TreeNode {
     pub path: String,
     /// "dir" | "file"
     pub kind: String,
+    /// Files only: language/file-type id used by the frontend for icons and
+    /// editor highlighting ("md" | "txt" | "pdf" | "image" | a language id
+    /// from the 16-language set: json, xml, html, css, javascript, ...).
+    pub file_type: String,
     pub children: Vec<TreeNode>,
 }
 
@@ -27,21 +31,40 @@ fn is_ignored_dir(name: &str) -> bool {
     name.starts_with('.') || IGNORED_DIRS.contains(&lower.as_str())
 }
 
-fn is_markdown(p: &Path) -> bool {
-    matches!(
-        p.extension().and_then(|e| e.to_str()),
-        Some(ext) if ext.eq_ignore_ascii_case("md") || ext.eq_ignore_ascii_case("markdown")
-    )
-}
-
-fn is_image(p: &Path) -> bool {
-    matches!(
-        p.extension().and_then(|e| e.to_str()),
-        Some(ext) if matches!(
-            ext.to_ascii_lowercase().as_str(),
-            "png" | "jpg" | "jpeg" | "gif" | "webp" | "bmp" | "svg"
-        )
-    )
+/// Extension → file-type id. `None` = not shown in the tree.
+/// Mirrors HiEditor's language registry: markdown/txt plus the 16 code
+/// languages, JSON/XML, PDF and images.
+fn file_type_of(p: &Path) -> Option<&'static str> {
+    let ext = p
+        .extension()
+        .and_then(|e| e.to_str())?
+        .to_ascii_lowercase();
+    Some(match ext.as_str() {
+        "md" | "markdown" | "mdown" | "mkd" => "md",
+        "txt" | "log" => "txt",
+        "pdf" => "pdf",
+        "png" | "jpg" | "jpeg" | "gif" | "webp" | "bmp" | "svg" => "image",
+        "json" | "jsonc" => "json",
+        "xml" | "xsl" | "xslt" | "csproj" | "vbproj" | "props" | "targets" | "resx"
+        | "plist" => "xml",
+        "html" | "htm" => "html",
+        "css" => "css",
+        "js" | "mjs" | "cjs" | "jsx" => "javascript",
+        "ts" | "tsx" | "mts" | "cts" => "typescript",
+        "py" | "pyw" => "python",
+        "java" => "java",
+        "cs" => "csharp",
+        "c" | "h" | "cpp" | "hpp" | "cc" | "cxx" => "cpp",
+        "go" => "go",
+        "rs" => "rust",
+        "sql" => "sql",
+        "php" | "phtml" => "php",
+        "yml" | "yaml" => "yaml",
+        "sh" | "bash" | "zsh" => "shell",
+        "ini" | "toml" | "cfg" | "conf" => "ini",
+        "bat" | "cmd" => "batch",
+        _ => return None,
+    })
 }
 
 pub(crate) fn read_dir_recursive(dir: &Path, depth: usize) -> Result<Vec<TreeNode>, String> {
@@ -70,13 +93,20 @@ pub(crate) fn read_dir_recursive(dir: &Path, depth: usize) -> Result<Vec<TreeNod
                 name,
                 path: path.to_string_lossy().to_string(),
                 kind: "dir".into(),
+                file_type: String::new(),
                 children,
             });
-        } else if file_type.is_file() && (is_markdown(&path) || is_image(&path)) {
+        } else if file_type.is_file() {
+            // Show markdown, text, PDF, images and the supported code/config
+            // languages; everything else stays out of the tree.
+            let Some(ftype) = file_type_of(&path) else {
+                continue;
+            };
             files.push(TreeNode {
                 name,
                 path: path.to_string_lossy().to_string(),
                 kind: "file".into(),
+                file_type: ftype.into(),
                 children: vec![],
             });
         }
@@ -228,6 +258,15 @@ pub fn delete_path(state: State<'_, AppState>, path: String) -> Result<(), Strin
     }
 }
 
+/// Read a file as raw bytes (PDF viewer). `ensure_within` still applies.
+#[tauri::command]
+pub fn read_binary_file(state: State<'_, AppState>, path: String) -> Result<Vec<u8>, String> {
+    let root = workspace_root(&state)?;
+    let p = PathBuf::from(&path);
+    ensure_within(&root, &p)?;
+    fs::read(&p).map_err(|e| e.to_string())
+}
+
 #[tauri::command]
 pub fn path_exists(path: String) -> Result<bool, String> {
     Ok(PathBuf::from(&path).exists())
@@ -268,12 +307,14 @@ mod tests {
     }
 
     #[test]
-    fn file_type_filters() {
-        assert!(is_markdown(Path::new("a.MD")));
-        assert!(!is_markdown(Path::new("a.png")));
-        assert!(is_image(Path::new("b.PNG")));
-        assert!(is_image(Path::new("b.jpeg")));
-        assert!(!is_image(Path::new("b.md")));
-        assert!(!is_image(Path::new("b.txt")));
+    fn file_type_classification() {
+        assert_eq!(file_type_of(Path::new("a.MD")), Some("md"));
+        assert_eq!(file_type_of(Path::new("b.PNG")), Some("image"));
+        assert_eq!(file_type_of(Path::new("c.rs")), Some("rust"));
+        assert_eq!(file_type_of(Path::new("d.BAT")), Some("batch"));
+        assert_eq!(file_type_of(Path::new("e.json")), Some("json"));
+        assert_eq!(file_type_of(Path::new("f.csproj")), Some("xml"));
+        assert_eq!(file_type_of(Path::new("g.exe")), None);
+        assert_eq!(file_type_of(Path::new("h")), None);
     }
 }

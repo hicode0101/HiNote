@@ -47,3 +47,18 @@ export function openEditorMenu(x: number, y: number): void {
 export function closeEditorMenu(): void {
   ui.editorMenu.visible = false;
 }
+
+// ===== Global toast (bottom-right, e.g. formatter results) =====
+
+export const toast = reactive({ text: "", visible: false });
+
+let toastTimer: ReturnType<typeof setTimeout> | null = null;
+
+export function showToast(text: string, ms = 2600): void {
+  toast.text = text;
+  toast.visible = true;
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.visible = false;
+  }, ms);
+}

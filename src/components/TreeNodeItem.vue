@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import type { TreeNode } from "@/lib/tauri";
-import { isImagePath } from "@/lib/tauri";
+import { langIcon, langColorClass, type LangId } from "@/lib/languages";
 import { workspace, toggleExpand, activateFile } from "@/stores/workspace";
 import { openContextMenu } from "@/stores/ui";
 import Icon from "./Icon.vue";
@@ -13,7 +13,16 @@ const props = defineProps<{
 }>();
 
 const isDir = computed(() => props.node.kind === "dir");
-const isImage = computed(() => !isDir.value && isImagePath(props.node.name));
+// Per-type icon + color: md/txt/pdf/image/code languages get distinct glyphs.
+const fileLang = computed<LangId | null>(() =>
+  isDir.value ? null : ((props.node.file_type as LangId) ?? null)
+);
+const iconName = computed(() =>
+  isDir.value ? "folder" : fileLang.value ? langIcon(fileLang.value) : "document"
+);
+const iconClass = computed(() =>
+  isDir.value ? "" : langColorClass(fileLang.value)
+);
 const expanded = computed(
   () => props.filterActive || workspace.expanded.has(props.node.path)
 );
@@ -55,7 +64,7 @@ function onContext(e: MouseEvent): void {
           class="twisty-icon"
         />
       </span>
-      <Icon :name="isDir ? 'folder' : isImage ? 'image' : 'document'" :size="16" class="row-icon" />
+      <Icon :name="iconName" :size="16" class="row-icon" :class="iconClass" />
       <span class="row-label" :title="node.name">{{ node.name }}</span>
     </div>
 
@@ -111,10 +120,23 @@ function onContext(e: MouseEvent): void {
 
 .row-icon {
   flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+/* File-type color highlighting (Fluent palette, works on light & dark) */
+.row-icon.type-md {
   color: var(--accent);
 }
-.tree-row:not(.dir) .row-icon {
-  color: var(--text-tertiary);
+.row-icon.type-txt {
+  color: var(--text-secondary);
+}
+.row-icon.type-pdf {
+  color: #c42b1c;
+}
+.row-icon.type-image {
+  color: #0f7b6c;
+}
+.row-icon.type-code {
+  color: #8250df;
 }
 
 .row-label {

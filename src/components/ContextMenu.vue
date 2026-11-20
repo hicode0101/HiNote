@@ -6,6 +6,7 @@ import { editor, reloadActiveFile } from "@/stores/editor";
 import { settings } from "@/stores/settings";
 import { refreshTree } from "@/stores/workspace";
 import { createDocument, createFolder, renameNode, deleteNode, revealNode } from "@/lib/ops";
+import { canFormat, formatDocument } from "@/lib/formatActions";
 import {
   doUndo, doRedo, editorCut, editorCopy, editorPaste, editorSelectAll,
   hasSelection, wrapSelection, setHeading, toggleQuote,
@@ -35,7 +36,8 @@ const items = computed<MenuItem[]>(() => {
   if (!node) {
     // Workspace root
     return [
-      { key: "newDoc", label: t("menu.newDoc"), icon: "documentPlus", action: () => createDocument(settings.workspace!) },
+      { key: "newDoc", label: t("menu.newDoc"), icon: "documentPlus", action: () => createDocument(settings.workspace!, "md") },
+      { key: "newText", label: t("menu.newText"), icon: "note", action: () => createDocument(settings.workspace!, "txt") },
       { key: "newFolder", label: t("menu.newFolder"), icon: "folderPlus", action: () => createFolder(settings.workspace!) },
       { key: "reveal", label: t("menu.reveal"), icon: "open", action: () => revealNode(null) },
       { key: "sep1", label: "", icon: "", separator: true, action: () => undefined },
@@ -44,7 +46,8 @@ const items = computed<MenuItem[]>(() => {
   }
   if (node.kind === "dir") {
     return [
-      { key: "newDoc", label: t("menu.newDoc"), icon: "documentPlus", action: () => createDocument(node.path) },
+      { key: "newDoc", label: t("menu.newDoc"), icon: "documentPlus", action: () => createDocument(node.path, "md") },
+      { key: "newText", label: t("menu.newText"), icon: "note", action: () => createDocument(node.path, "txt") },
       { key: "newFolder", label: t("menu.newFolder"), icon: "folderPlus", action: () => createFolder(node.path) },
       { key: "rename", label: t("menu.rename"), icon: "edit", action: () => renameNode(node) },
       { key: "reveal", label: t("menu.reveal"), icon: "open", action: () => revealNode(node) },
@@ -79,6 +82,7 @@ interface EditorMenuItem {
 
 const editorItems = computed<EditorMenuItem[]>(() => {
   const hasSel = hasSelection();
+  const formattable = canFormat(); // json/xml only
   return [
     { key: "undo", label: t("editmenu.undo"), icon: "undo", action: () => doUndo() },
     { key: "redo", label: t("editmenu.redo"), icon: "redo", action: () => doRedo() },
@@ -87,6 +91,9 @@ const editorItems = computed<EditorMenuItem[]>(() => {
     { key: "copy", label: t("editmenu.copy"), icon: "copy", disabled: !hasSel, action: () => void editorCopy() },
     { key: "paste", label: t("editmenu.paste"), icon: "edit", action: () => void editorPaste() },
     { key: "selectAll", label: t("editmenu.selectAll"), icon: "note", action: () => editorSelectAll() },
+    { key: "sep1b", label: "", icon: "", separator: true, action: () => undefined },
+    { key: "format", label: t("editmenu.format"), icon: "refresh", disabled: !formattable, action: () => void formatDocument(false) },
+    { key: "minify", label: t("editmenu.minify"), icon: "download", disabled: !formattable, action: () => void formatDocument(true) },
     { key: "sep2", label: "", icon: "", separator: true, action: () => undefined },
     { key: "bold", label: t("editmenu.bold"), icon: "bold", action: () => wrapSelection("**") },
     { key: "italic", label: t("editmenu.italic"), icon: "italic", action: () => wrapSelection("*") },

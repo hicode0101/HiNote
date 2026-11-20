@@ -3,12 +3,19 @@ import { computed } from "vue";
 import { t } from "@/lib/i18n";
 import { editor } from "@/stores/editor";
 import { settings } from "@/stores/settings";
+import { langForPath } from "@/lib/languages";
 
 const isClassic = computed(() => settings.editorMode === "classic");
 
 const saveState = computed(() => {
   if (editor.saving) return t("editor.saving");
   return editor.dirty ? t("editor.unsaved") : t("editor.saved");
+});
+
+// Language display name for the open file (Markdown / JSON / Python / ...).
+const langLabel = computed(() => {
+  const lang = langForPath(editor.path);
+  return lang ? t(`lang.${lang}`) : "";
 });
 </script>
 
@@ -21,7 +28,7 @@ const saveState = computed(() => {
       </template>
       <span class="item">{{ editor.content.length }} {{ t("status.chars") }}</span>
       <span class="divider"></span>
-      <span class="item">{{ t("status.markdown") }}</span>
+      <span class="item">{{ langLabel }}</span>
     </div>
     <div class="right">
       <span class="item save" :class="{ dirty: editor.dirty }">{{ saveState }}</span>

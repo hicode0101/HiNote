@@ -3,8 +3,8 @@ import { onMounted, onUnmounted } from "vue";
 import { listen } from "@tauri-apps/api/event";
 import { t } from "@/lib/i18n";
 import { settings } from "@/stores/settings";
-import { editor, flushSave, handleFileChangedEvent } from "@/stores/editor";
-import { ui } from "@/stores/ui";
+import { editor, flushSave, handleFileChangedEvent, isMarkdownFile, isPdfFile } from "@/stores/editor";
+import { toast, ui } from "@/stores/ui";
 import { refreshTree } from "@/stores/workspace";
 import { createDocument } from "@/lib/ops";
 import TitleBar from "./components/TitleBar.vue";
@@ -15,6 +15,7 @@ import FormatToolbar from "./components/FormatToolbar.vue";
 import EditorClassic from "./components/EditorClassic.vue";
 import EditorFluid from "./components/EditorFluid.vue";
 import PreviewPane from "./components/PreviewPane.vue";
+import PdfViewer from "./components/PdfViewer.vue";
 import StatusBar from "./components/StatusBar.vue";
 import SettingsDialog from "./components/SettingsDialog.vue";
 import PromptDialog from "./components/PromptDialog.vue";
@@ -79,13 +80,16 @@ onUnmounted(() => {
         <EditorHeader />
 
         <template v-if="editor.path">
-          <EditorFluid v-if="settings.editorMode === 'fluid'" />
+          <!-- PDF: dedicated read-only viewer -->
+          <PdfViewer v-if="isPdfFile()" />
+          <!-- Fluid (WYSIWYG) is Markdown-only; other file types stay classic. -->
+          <EditorFluid v-else-if="settings.editorMode === 'fluid' && isMarkdownFile()" />
           <template v-else>
-            <FormatToolbar v-if="editor.view === 'edit'" />
+            <FormatToolbar v-if="editor.view === 'edit' && isMarkdownFile()" />
             <EditorClassic v-show="editor.view === 'edit'" />
-            <PreviewPane v-if="editor.view === 'preview'" />
+            <PreviewPane v-if="editor.view === 'preview' && isMarkdownFile()" />
           </template>
-          <StatusBar />
+          <StatusBar v-if="!isPdfFile()" />
         </template>
 
         <div v-else class="editor-empty">
@@ -93,7 +97,7 @@ onUnmounted(() => {
             <Icon name="note" :size="44" class="empty-icon" />
             <div class="empty-title">{{ t("editor.emptyTitle") }}</div>
             <div class="empty-desc">{{ t("editor.emptyDesc") }}</div>
-            <button class="btn primary empty-btn" @click="createDocument(settings.workspace!)">
+            <button class="btn primary empty-btn" @click="createDocument(settings.workspace!, 'md')">
               <Icon name="documentPlus" :size="16" />
               {{ t("editor.newDoc") }}
             </button>
@@ -110,6 +114,11 @@ onUnmounted(() => {
     <PromptDialog />
     <ContextMenu />
     <ImagePreview />
+
+    <!-- Global toast (formatter results, errors) -->
+    <transition name="fade">
+      <div v-if="toast.visible" class="toast">{{ toast.text }}</div>
+    </transition>
   </div>
 </template>
 
@@ -179,5 +188,22 @@ onUnmounted(() => {
   font-size: 13px;
   color: var(--text-secondary);
   margin-bottom: 22px;
+}
+
+.toast {
+  position: fixed;
+  right: 20px;
+  bottom: 44px;
+  z-index: 960;
+  max-width: 420px;
+  padding: 9px 14px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-sm);
+  background: var(--bg-layer);
+  box-shadow: var(--shadow-flyout);
+  font-size: 12.5px;
+  color: var(--text-primary);
+  user-select: text;
+  word-break: break-all;
 }
 </style>

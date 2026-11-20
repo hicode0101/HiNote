@@ -1,5 +1,6 @@
 import { reactive } from "vue";
 import { api, baseName } from "@/lib/tauri";
+import { langForPath } from "@/lib/languages";
 import { t } from "@/lib/i18n";
 import { confirmDialog, dialogState } from "./dialog";
 import { ui } from "./ui";
@@ -29,8 +30,31 @@ async function readMtime(path: string): Promise<number | null> {
   }
 }
 
+/** Current file is a Markdown note (fluid mode / preview eligible). */
+export function isMarkdownFile(): boolean {
+  return langForPath(editor.path) === "md";
+}
+
+/** Current file is a PDF opened in the read-only viewer. */
+export function isPdfFile(): boolean {
+  return langForPath(editor.path) === "pdf";
+}
+
 export async function openFile(path: string): Promise<void> {
   await flushSave();
+  // PDF: binary — do not run through text decoding; the viewer reads it itself.
+  if (langForPath(path) === "pdf") {
+    editor.generation++;
+    editor.path = path;
+    editor.content = "";
+    editor.savedContent = "";
+    editor.dirty = false;
+    editor.view = "edit";
+    editor.cursor = { line: 1, col: 1 };
+    editor.savedMtime = await readMtime(path);
+    api.setWatchedFile(path).catch(() => {});
+    return;
+  }
   try {
     const content = await api.readFile(path);
     editor.generation++;
@@ -78,6 +102,7 @@ export async function flushSave(): Promise<void> {
     saveTimer = null;
   }
   if (!editor.path || !editor.dirty) return;
+  if (langForPath(editor.path) === "pdf") return; // read-only viewer, never written
   editor.saving = true;
   try {
     await api.writeFile(editor.path, editor.content);
@@ -132,6 +157,7 @@ export async function handleFileChangedEvent(): Promise<void> {
   if (watchBusy || dialogState.visible || ui.settingsOpen) return;
   if (!document.hasFocus()) return; // not in the foreground = user isn't looking
   if (!editor.path || editor.saving) return;
+  if (isPdfFile()) return; // read-only viewer keeps its own loaded copy
   const path = editor.path;
   const mtime = await readMtime(path);
   if (mtime === null) return; // deleted/inaccessible: stay silent

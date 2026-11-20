@@ -4,6 +4,8 @@ export interface TreeNode {
   name: string;
   path: string;
   kind: "dir" | "file";
+  /** Files only: file-type id (md/txt/pdf/image or a language id). */
+  file_type?: string;
   children: TreeNode[];
 }
 
@@ -27,6 +29,11 @@ export const api = {
   setSessionWorkspace: (path: string) =>
     invoke<void>("set_session_workspace", { path }),
   readFile: (path: string) => invoke<string>("read_file", { path }),
+  /** Raw bytes for binary viewers (PDF). */
+  readBinaryFile: (path: string) => invoke<number[]>("read_binary_file", { path }),
+  /** Run a formatter: "json.pretty" | "json.minify" | "xml.pretty" | "xml.minify". */
+  formatText: (text: string, formatterId: string, indent?: number) =>
+    invoke<string>("format_text", { text, formatterId, indent: indent ?? null }),
   writeFile: (path: string, content: string) =>
     invoke<void>("write_file", { path, content }),
   createFile: (path: string, content: string) =>

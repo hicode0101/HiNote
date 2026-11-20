@@ -249,3 +249,14 @@ export function insertAtCursor(text: string): void {
   });
   focusAndSync();
 }
+
+/** Replace the whole document (JSON/XML formatting), keeping undo history. */
+export function replaceAllText(text: string): void {
+  const v = requireView();
+  v.dispatch({
+    changes: { from: 0, to: v.state.doc.length, insert: text },
+    selection: { anchor: Math.min(text.length, v.state.selection.main.anchor) },
+    scrollIntoView: true,
+  });
+  focusAndSync();
+}

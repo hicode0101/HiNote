@@ -2,8 +2,9 @@
 import { computed } from "vue";
 import { t } from "@/lib/i18n";
 import { settings, updateEditorMode, toggleSidebar, type EditorMode } from "@/stores/settings";
-import { editor } from "@/stores/editor";
+import { editor, isMarkdownFile } from "@/stores/editor";
 import { baseName } from "@/lib/tauri";
+import { langForPath, langIcon } from "@/lib/languages";
 import Icon from "./Icon.vue";
 
 const breadcrumbs = computed<string[]>(() => {
@@ -18,6 +19,15 @@ const breadcrumbs = computed<string[]>(() => {
 
 const activeFile = computed(() =>
   editor.path ? baseName(editor.path) : ""
+);
+
+// Mode switch + edit/preview tabs only make sense for Markdown notes;
+// other types (txt/code/json/pdf) open straight in the classic editor/viewer.
+const mdControls = computed(() => isMarkdownFile());
+
+// Breadcrumb icon reflects the file type (md/txt/code/pdf/image).
+const crumbIcon = computed(() =>
+  editor.path ? langIcon(langForPath(editor.path)) : "note"
 );
 
 async function setMode(mode: EditorMode): Promise<void> {
@@ -41,7 +51,7 @@ function setView(view: "edit" | "preview"): void {
       >
         <Icon :name="settings.sidebarCollapsed ? 'chevronRight' : 'chevronLeft'" :size="15" />
       </button>
-      <Icon name="note" :size="14" class="crumb-icon" />
+      <Icon :name="crumbIcon" :size="14" class="crumb-icon" />
       <template v-if="breadcrumbs.length">
         <span class="crumb muted">{{ t("app.allNotes") }}</span>
         <template v-for="(seg, i) in breadcrumbs" :key="i">
@@ -55,8 +65,8 @@ function setView(view: "edit" | "preview"): void {
     </nav>
 
     <div class="header-right">
-      <!-- Classic mode: edit / preview tabs (image 2 style) -->
-      <div v-if="settings.editorMode === 'classic'" class="view-tabs">
+      <!-- Classic mode: edit / preview tabs (image 2 style) — Markdown only -->
+      <div v-if="mdControls && settings.editorMode === 'classic'" class="view-tabs">
         <button
           class="view-tab"
           :class="{ on: editor.view === 'edit' }"
@@ -73,8 +83,8 @@ function setView(view: "edit" | "preview"): void {
         </button>
       </div>
 
-      <!-- Mode switch: classic / fluid -->
-      <div class="mode-switch" :title="activeFile">
+      <!-- Mode switch: classic / fluid (Markdown only) -->
+      <div v-if="mdControls" class="mode-switch" :title="activeFile">
         <button
           class="mode-btn"
           :class="{ on: settings.editorMode === 'classic' }"

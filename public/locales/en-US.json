@@ -31,7 +31,8 @@
     "rename": "Rename",
     "delete": "Delete",
     "reveal": "Reveal in File Explorer",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "newText": "New Text File"
   },
   "editor": {
     "classic": "Classic",
@@ -46,13 +47,13 @@
     "saving": "Saving…",
     "modeClassic": "Classic Mode",
     "modeFluid": "Fluid Mode",
-    "pasteImageFailed": "Failed to save the image. Please try again."
+    "pasteImageFailed": "Failed to save the image. Please try again.",
+    "newText": "New Text File"
   },
   "status": {
     "line": "Ln",
     "col": "Col",
     "chars": "chars",
-    "markdown": "Markdown",
     "lf": "LF",
     "utf8": "UTF-8"
   },
@@ -104,7 +105,8 @@
     "fileChangedBody": "\"{name}\" has been modified on disk. Reload it?",
     "fileChangedDirtyBody": "\"{name}\" has been modified on disk, and there are unsaved changes. Reloading will discard them. Reload anyway?",
     "reloadConfirmTitle": "Reload File",
-    "reloadConfirmBody": "\"{name}\" has unsaved changes. Reloading will discard them. Continue?"
+    "reloadConfirmBody": "\"{name}\" has unsaved changes. Reloading will discard them. Continue?",
+    "newTextTitle": "New Text File"
   },
   "error": {
     "operationFailed": "Operation failed: {msg}",
@@ -148,6 +150,45 @@
     "codeBlock": "Code Block",
     "table": "Insert Table",
     "hr": "Horizontal Rule",
-    "reloadFile": "Reload File"
+    "reloadFile": "Reload File",
+    "format": "Format",
+    "minify": "Minify"
+  },
+  "format": {
+    "formatted": "Formatted",
+    "minified": "Minified"
+  },
+  "pdf": {
+    "prevPage": "Previous page",
+    "nextPage": "Next page",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "fitWidth": "Fit width",
+    "openFailed": "Failed to load PDF",
+    "loading": "Loading…"
+  },
+  "lang": {
+    "md": "Markdown",
+    "txt": "Plain Text",
+    "json": "JSON",
+    "xml": "XML",
+    "pdf": "PDF",
+    "image": "Image",
+    "html": "HTML",
+    "css": "CSS",
+    "javascript": "JavaScript",
+    "typescript": "TypeScript",
+    "python": "Python",
+    "java": "Java",
+    "csharp": "C#",
+    "cpp": "C/C++",
+    "go": "Go",
+    "rust": "Rust",
+    "sql": "SQL",
+    "php": "PHP",
+    "yaml": "YAML",
+    "shell": "Shell",
+    "ini": "INI/TOML",
+    "batch": "Batch"
   }
 }
