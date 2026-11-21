@@ -444,7 +444,7 @@ watch(resolvedTheme, () => {
 });
 
 // Keep the editor in sync with content loaded/set programmatically
-// (e.g. mode switches from fluid -> classic).
+// (e.g. reloadFromDisk refreshing the open document).
 watch(
   () => editor.content,
   (content) => {

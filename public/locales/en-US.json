@@ -38,8 +38,6 @@
     "newText": "New Text File"
   },
   "editor": {
-    "classic": "Classic",
-    "fluid": "Fluid",
     "edit": "Edit",
     "split": "Split",
     "preview": "Preview",
@@ -50,8 +48,6 @@
     "unsaved": "Unsaved",
     "closeFile": "Close document",
     "saving": "Saving…",
-    "modeClassic": "Classic Mode",
-    "modeFluid": "Fluid Mode",
     "pasteImageFailed": "Failed to save the image. Please try again.",
     "newText": "New Text File"
   },

@@ -75,8 +75,7 @@ function onClick(e: MouseEvent): void {
   if (abs) void activateFile(abs);
 }
 
-// Common languages for auto-detection live in lib/hljsAuto (shared with the
-// fluid editor's bare-fence enhancement).
+// Common languages for auto-detection live in lib/hljsAuto.
 
 const md: MarkdownIt = new MarkdownIt({
   html: true,

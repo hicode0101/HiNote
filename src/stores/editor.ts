@@ -35,7 +35,7 @@ async function readMtime(path: string): Promise<number | null> {
   }
 }
 
-/** Current file is a Markdown note (fluid mode / preview eligible). */
+/** Current file is a Markdown note (preview / split eligible). */
 export function isMarkdownFile(): boolean {
   return langForPath(editor.path) === "md";
 }
@@ -70,10 +70,6 @@ export async function openFile(path: string): Promise<void> {
     editor.savedContent = out.text;
     editor.dirty = false;
     editor.view = "edit";
-    // 打开 / 新建 markdown 时默认回到经典模式（新建也走 activateFile → 这里）。
-    // 仅改内存态：磁盘上的 editor_mode 保留用户最近一次手动切换的偏好，
-    // 但每次打开文档都以经典模式起步。
-    if (langForPath(path) === "md") settings.editorMode = "classic";
     editor.cursor = { line: 1, col: 1 };
     editor.savedMtime = await readMtime(path);
     editor.encoding = out.encoding;

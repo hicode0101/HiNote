@@ -38,8 +38,6 @@
     "newText": "新建文本"
   },
   "editor": {
-    "classic": "经典",
-    "fluid": "流畅",
     "edit": "编辑",
     "split": "分屏编辑",
     "preview": "预览",
@@ -50,8 +48,6 @@
     "unsaved": "未保存",
     "closeFile": "关闭文档",
     "saving": "保存中…",
-    "modeClassic": "经典模式",
-    "modeFluid": "流畅模式",
     "pasteImageFailed": "图片保存失败，请重试",
     "newText": "新建文本"
   },

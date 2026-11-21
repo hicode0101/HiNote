@@ -2,10 +2,7 @@
 import { computed } from "vue";
 import { t } from "@/lib/i18n";
 import { editor } from "@/stores/editor";
-import { settings } from "@/stores/settings";
 import { langForPath } from "@/lib/languages";
-
-const isClassic = computed(() => settings.editorMode === "classic");
 
 const saveState = computed(() => {
   if (editor.saving) return t("editor.saving");
@@ -25,10 +22,8 @@ const encodingLabel = computed(() => editor.encodingLabel || "UTF-8");
 <template>
   <footer class="status-bar">
     <div class="left">
-      <template v-if="isClassic">
-        <span class="item">{{ t("status.line") }} {{ editor.cursor.line }}, {{ t("status.col") }} {{ editor.cursor.col }}</span>
-        <span class="divider"></span>
-      </template>
+      <span class="item">{{ t("status.line") }} {{ editor.cursor.line }}, {{ t("status.col") }} {{ editor.cursor.col }}</span>
+      <span class="divider"></span>
       <span class="item">{{ editor.content.length }} {{ t("status.chars") }}</span>
       <span class="divider"></span>
       <span class="item">{{ langLabel }}</span>

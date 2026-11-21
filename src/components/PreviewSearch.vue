@@ -5,7 +5,7 @@ import { editor } from "@/stores/editor";
 import Icon from "./Icon.vue";
 
 /**
- * Find-in-page for DOM-rendered content (markdown preview, fluid vditor):
+ * Find-in-page for DOM-rendered content (markdown preview):
  * VS Code-style floating panel, matches highlighted via the CSS Custom
  * Highlight API, navigation scrolls the active match into view. No replace
  * row — these surfaces are not replaced from here.
@@ -14,7 +14,7 @@ const props = withDefaults(
   defineProps<{
     container: HTMLElement | null;
     contentSelector?: string;
-    /** Panel offset below the anchor's top (clears the fluid toolbar). */
+    /** Panel offset below the anchor's top. */
     offsetTop?: number;
   }>(),
   { contentSelector: ".md-preview", offsetTop: 0 }

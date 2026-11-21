@@ -12,7 +12,6 @@ import {
   doUndo, doRedo, editorCut, editorCopy, editorPaste, editorSelectAll,
   hasSelection, deleteSelectionCheckingImage, transformUpper, transformLower,
   transformCapitalize, copySelectionText, pasteFromClipboardIntoActive,
-  fluidDeleteSelection,
 } from "@/lib/markdownActions";
 import Icon from "./Icon.vue";
 
@@ -88,18 +87,6 @@ function sep(key: string): EditorMenuItem {
 }
 
 const editorItems = computed<EditorMenuItem[]>(() => {
-  // Fluid WYSIWYG menu: copy/paste + delete (deleting an image additionally
-  // offers to remove its workspace file). Recomputed on every open so the
-  // DOM-selection state is fresh.
-  if (ui.editorMenu.fluid) {
-    const sel = window.getSelection()?.toString() ?? "";
-    return [
-      { key: "copy", label: t("editmenu.copy"), shortcut: "Ctrl+C", disabled: !sel, action: () => void copySelectionText() },
-      { key: "paste", label: t("editmenu.paste"), shortcut: "Ctrl+V", action: () => void pasteFromClipboardIntoActive() },
-      sep("sep1"),
-      { key: "delete", label: t("editmenu.delete"), shortcut: "Del", disabled: !ui.editorMenu.hasDelete, action: () => fluidDeleteSelection() },
-    ];
-  }
   // Clipboard-only menu (preview pane: copy enabled, paste grayed). Recomputed
   // on every open so the DOM-selection state is fresh.
   if (ui.editorMenu.clipboardOnly) {

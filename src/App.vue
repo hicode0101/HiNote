@@ -15,7 +15,6 @@ import EditorHeader from "./components/EditorHeader.vue";
 import FormatToolbar from "./components/FormatToolbar.vue";
 import ViewTabs from "./components/ViewTabs.vue";
 import EditorClassic from "./components/EditorClassic.vue";
-import EditorFluid from "./components/EditorFluid.vue";
 import PreviewPane from "./components/PreviewPane.vue";
 import PdfViewer from "./components/PdfViewer.vue";
 import StatusBar from "./components/StatusBar.vue";
@@ -117,8 +116,6 @@ onUnmounted(() => {
         <template v-if="editor.path">
           <!-- PDF: dedicated read-only viewer -->
           <PdfViewer v-if="isPdfFile()" />
-          <!-- Fluid (WYSIWYG) is Markdown-only; other file types stay classic. -->
-          <EditorFluid v-else-if="settings.editorMode === 'fluid' && isMarkdownFile()" />
           <template v-else>
             <!-- 工具栏三种视图都显示；仅预览视图整体禁用（不可点击） -->
             <FormatToolbar v-if="isMarkdownFile()" :disabled="editor.view === 'preview'" />

@@ -3,15 +3,12 @@ import { api, AppConfig } from "@/lib/tauri";
 import { applyTheme, ThemeOption } from "@/lib/theme";
 import { setLanguage, LangOption } from "@/lib/i18n";
 
-export type EditorMode = "classic" | "fluid";
-
 export const settings = reactive({
   loaded: false,
   workspace: null as string | null,
   imagesDir: "images",
   language: "system" as LangOption,
   theme: "system" as ThemeOption,
-  editorMode: "classic" as EditorMode,
   /** Left tree hidden to maximize the editor area (persisted). */
   sidebarCollapsed: false,
   /** Auto-save edits to disk (persisted; default off, Ctrl+S always works). */
@@ -24,7 +21,6 @@ export async function loadSettings(): Promise<void> {
     settings.imagesDir = cfg.images_dir || "images";
     settings.language = (cfg.language as LangOption) || "system";
     settings.theme = (cfg.theme as ThemeOption) || "system";
-    settings.editorMode = (cfg.editor_mode as EditorMode) || "classic";
     settings.sidebarCollapsed = !!cfg.sidebar_collapsed;
     settings.autosave = !!cfg.autosave;
   } catch {
@@ -40,7 +36,6 @@ export async function persistSettings(): Promise<void> {
     images_dir: settings.imagesDir,
     language: settings.language,
     theme: settings.theme,
-    editor_mode: settings.editorMode,
     sidebar_collapsed: settings.sidebarCollapsed,
     autosave: settings.autosave,
   };
@@ -65,12 +60,6 @@ export async function updateTheme(pref: ThemeOption): Promise<void> {
 export async function updateLanguage(pref: LangOption): Promise<void> {
   settings.language = pref;
   await setLanguage(pref);
-  await persistSettings();
-}
-
-export async function updateEditorMode(mode: EditorMode): Promise<void> {
-  if (settings.editorMode === mode) return;
-  settings.editorMode = mode;
   await persistSettings();
 }
 

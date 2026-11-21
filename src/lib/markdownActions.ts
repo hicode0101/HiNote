@@ -10,12 +10,12 @@ import { editor } from "@/stores/editor";
 
 let view: EditorView | null = null;
 
-/** Register/unregister the live CodeMirror view (classic mode only). */
+/** Register/unregister the live CodeMirror view. */
 export function registerEditorView(v: EditorView | null): void {
   view = v;
 }
 
-/** Current CodeMirror view (null in fluid mode); used by the search overlay. */
+/** Current CodeMirror view; used by the search overlay and format actions. */
 export function getEditorView(): EditorView | null {
   return view;
 }
@@ -213,8 +213,8 @@ export function selectionImageFile(): string | null {
 
 /**
  * Delete the selection; when it is exactly one workspace image tag, also ask
- * whether to remove the physical file (the tag is removed first, mirroring
- * the fluid editor's order — cancel keeps the file on disk).
+ * whether to remove the physical file (the tag is removed first — cancel
+ * keeps the file on disk).
  */
 export async function deleteSelectionCheckingImage(): Promise<void> {
   const v = view;
@@ -309,31 +309,12 @@ export function editorSelectAll(): void {
   view.focus();
 }
 
-// ===== Clipboard-only menu hooks (preview pane / fluid editor) =====
+// ===== Clipboard-only menu hooks (read-only preview surface) =====
 
-/** Copy the DOM selection (preview/fluid surfaces, outside CodeMirror). */
+/** Copy the DOM selection (read-only preview surface, outside CodeMirror). */
 export async function copySelectionText(): Promise<void> {
   const text = window.getSelection()?.toString() ?? "";
   if (text) await copyText(text);
-}
-
-/** Paste hook registered by the fluid editor (vditor); CM is the fallback. */
-let fluidPaste: ((text: string) => void) | null = null;
-
-export function registerFluidPaste(fn: ((text: string) => void) | null): void {
-  fluidPaste = fn;
-}
-
-/** Fluid context-menu hook: delete target, registered by EditorFluid. */
-let fluidDeleteAction: (() => void) | null = null;
-
-export function registerFluidMenuActions(hooks: { deleteTarget: () => void } | null): void {
-  fluidDeleteAction = hooks?.deleteTarget ?? null;
-}
-
-/** Delete the fluid editor's context-menu target (image or selection). */
-export function fluidDeleteSelection(): void {
-  fluidDeleteAction?.();
 }
 
 /** Read the clipboard and insert into the active editable surface. */
@@ -345,8 +326,7 @@ export async function pasteFromClipboardIntoActive(): Promise<void> {
     return; // clipboard read denied
   }
   if (!text) return;
-  if (fluidPaste) fluidPaste(text);
-  else if (view) insertAtCursor(text);
+  if (view) insertAtCursor(text);
 }
 
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {

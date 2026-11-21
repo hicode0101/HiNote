@@ -27,14 +27,10 @@
 
 ## 功能特性
 
-### 双模式编辑器
+### 经典模式编辑器
 
-| 模式 | 说明 |
-|------|------|
-| **经典模式** | 基于 CodeMirror 6 的 Markdown 源码编辑，语法着色、编辑 / 预览双标签页 |
-| **流畅模式** | 基于 Vditor 的所见即所得（WYSIWYG）编辑，带格式工具栏，写作体验接近传统文档软件 |
-
-- 两种模式随时切换，内容实时同步
+- 基于 CodeMirror 6 的 Markdown 源码编辑，语法着色、行号；工具栏下方 编辑 / 分屏编辑 / 预览 三段切换
+- **分屏编辑**：左边源码编辑、右边实时预览，两侧滚动同步
 - Markdown 预览支持任务列表、表格、代码块高亮、HTML 内嵌
 
 ### 智能文件与编码处理
@@ -51,7 +47,7 @@
 - 外部文件系统变更自动刷新目录树（Rust 侧 FS Watcher）
 - 最近打开的工作区记录
 - 拖拽文件树中的文件到编辑器：图片插入 `![](相对路径)` 引用，其他文件插入链接
-- **图片联动删除**：删除文档中的图片引用时（流畅模式删除图片 / 经典模式删除完整的图片标签），弹窗询问是否同时删除磁盘上的物理图片文件
+- **图片联动删除**：删除文档中的图片引用（完整的图片标签）时，弹窗询问是否同时删除磁盘上的物理图片文件
 
 ### 链接与图片
 
@@ -62,7 +58,7 @@
 
 ### 查找与编辑增强
 
-- **VS Code 风格的 Ctrl+F 搜索面板**：经典编辑模式支持查找替换；预览与流畅模式支持全文查找高亮（CSS Custom Highlight API），三种视图下位置一致（顶部居中）
+- **VS Code 风格的 Ctrl+F 搜索面板**：编辑 / 分屏模式支持查找替换；预览与分屏的预览侧支持全文查找高亮（CSS Custom Highlight API），位置一致（顶部居中）
 - 20+ 种语言的语法高亮：JS/TS、Python、Java、C#、C/C++、Go、Rust、SQL、PHP、YAML、Shell、Batch、INI/TOML 等
 - JSON / XML 格式化与压缩（快捷键 / 右键菜单）
 - PDF 阅读（独立只读视图）
@@ -80,7 +76,7 @@
 |----|------|
 | 桌面框架 | [Tauri 2](https://v2.tauri.app/)（Rust 后端 + 系统 WebView） |
 | 前端 | Vue 3.5 + TypeScript + Vite 7 |
-| 编辑器 | CodeMirror 6（源码模式）、Vditor（所见即所得） |
+| 编辑器 | CodeMirror 6 |
 | 预览渲染 | markdown-it + highlight.js |
 | 编码检测 | encoding_rs + chardetng（Rust） |
 | 文件监听 | notify（Rust FS Watcher） |
@@ -101,7 +97,7 @@
 git clone https://github.com/hicode0101/HiNote.git
 cd HiNote
 
-# 2. 安装前端依赖（postinstall 会自动复制 Vditor 静态资源）
+# 2. 安装前端依赖
 npm install
 
 # 3. 启动开发模式（前端热更新 + Rust 增量编译）
@@ -139,7 +135,7 @@ build.bat release
 
 1. 启动 HiNote，打开（或新建）一个文件夹作为工作区 —— 它就是你所有笔记的存放位置
 2. 左侧文件树中新建 Markdown 文档，或在资源管理器中把已有的 `.md` 文件夹拖进来
-3. 顶部按钮切换 经典 / 流畅 编辑模式、编辑 / 预览视图
+3. 工具栏下方切换 编辑 / 分屏编辑 / 预览 视图
 4. 所有笔记就是普通文件，可以用任何编辑器打开，也可以放进 Git 仓库做版本管理
 
 ## 工程目录结构
@@ -149,12 +145,12 @@ HiNote/
 ├── src/                        # 前端（Vue 3 + TypeScript）
 │   ├── components/             # 界面组件
 │   │   ├── EditorClassic.vue   #   经典模式（CodeMirror 6）编辑器
-│   │   ├── EditorFluid.vue     #   流畅模式（Vditor WYSIWYG）编辑器
 │   │   ├── PreviewPane.vue     #   Markdown 预览（markdown-it 渲染）
 │   │   ├── EditorSearch.vue    #   VS Code 风格查找替换面板（经典编辑）
-│   │   ├── PreviewSearch.vue   #   全文查找面板（预览 / 流畅，Highlight API）
-│   │   ├── EditorHeader.vue    #   面包屑导航 / 模式切换 / 关闭文档
-│   │   ├── FormatToolbar.vue   #   Markdown 格式工具栏
+│   │   ├── PreviewSearch.vue   #   全文查找面板（预览，Highlight API）
+│   │   ├── EditorHeader.vue    #   面包屑导航 / 关闭文档
+│   │   ├── FormatToolbar.vue   #   Markdown 格式工具栏（预览视图禁用）
+│   │   ├── ViewTabs.vue        #   编辑 / 分屏编辑 / 预览 视图切换
 │   │   ├── Sidebar.vue         #   侧边栏（搜索 + 文件树）
 │   │   ├── TreeNodeItem.vue    #   文件树节点（递归、拖拽）
 │   │   ├── PdfViewer.vue       #   PDF 只读阅读器
@@ -204,11 +200,9 @@ HiNote/
 │   └── Cargo.toml
 │
 ├── public/
-│   ├── locales/                # i18n 文案（zh-CN / en-US）
-│   └── vditor/                 # Vditor 本地静态资源（离线 CDN）
+│   └── locales/                # i18n 文案（zh-CN / en-US）
 │
 ├── scripts/                    # 构建辅助脚本
-│   ├── copy-vditor.mjs         #   npm install 后复制 Vditor 资源
 │   └── gen-icon.mjs            #   应用图标生成
 │
 └── package.json
@@ -219,7 +213,7 @@ HiNote/
 | 快捷键 | 功能 |
 |--------|------|
 | `Ctrl+S` | 保存当前文档 |
-| `Ctrl+F` | 查找 / 替换（编辑模式）；全文查找（预览 / 流畅模式） |
+| `Ctrl+F` | 查找 / 替换（编辑模式）；全文查找（预览） |
 | `Ctrl+Z` / `Ctrl+Y` | 撤销 / 恢复 |
 | `Ctrl+Shift+J` / `Ctrl+Alt+J` | JSON 格式化 / 压缩 |
 | `Ctrl+Shift+L` / `Ctrl+Alt+L` | XML 格式化 / 压缩 |

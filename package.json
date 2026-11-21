@@ -14,8 +14,7 @@
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "gen:icon": "node scripts/gen-icon.mjs && tauri icon scripts/icon.png",
-    "sync:version": "node scripts/sync-version.mjs",
-    "postinstall": "node scripts/copy-vditor.mjs"
+    "sync:version": "node scripts/sync-version.mjs"
   },
   "dependencies": {
     "@codemirror/commands": "^6",
@@ -45,7 +44,6 @@
     "markdown-it": "^14",
     "markdown-it-task-lists": "^2",
     "pdfjs-dist": "^6.5.438",
-    "vditor": "^3",
     "vue": "^3.5"
   },
   "devDependencies": {

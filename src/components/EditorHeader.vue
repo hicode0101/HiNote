@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { t } from "@/lib/i18n";
-import { settings, updateEditorMode, toggleSidebar, type EditorMode } from "@/stores/settings";
-import { editor, isMarkdownFile } from "@/stores/editor";
+import { settings, toggleSidebar } from "@/stores/settings";
+import { editor } from "@/stores/editor";
 import { closeActiveFile } from "@/stores/workspace";
-import { baseName } from "@/lib/tauri";
 import { langForPath, langIcon } from "@/lib/languages";
 import Icon from "./Icon.vue";
 
@@ -18,24 +17,10 @@ const breadcrumbs = computed<string[]>(() => {
   return rel.split(/[\\/]/).filter(Boolean);
 });
 
-const activeFile = computed(() =>
-  editor.path ? baseName(editor.path) : ""
-);
-
-// Mode switch only makes sense for Markdown notes; other types (txt/code/json/pdf)
-// open straight in the classic editor/viewer.
-const mdControls = computed(() => isMarkdownFile());
-
 // Breadcrumb icon reflects the file type (md/txt/code/pdf/image).
 const crumbIcon = computed(() =>
   editor.path ? langIcon(langForPath(editor.path)) : "note"
 );
-
-async function setMode(mode: EditorMode): Promise<void> {
-  const { flushSave } = await import("@/stores/editor");
-  await flushSave();
-  await updateEditorMode(mode);
-}
 </script>
 
 <template>
@@ -75,25 +60,6 @@ async function setMode(mode: EditorMode): Promise<void> {
       </button>
     </nav>
 
-    <div class="header-right">
-      <!-- Mode switch: classic / fluid (Markdown only) -->
-      <div v-if="mdControls" class="mode-switch" :title="activeFile">
-        <button
-          class="mode-btn"
-          :class="{ on: settings.editorMode === 'classic' }"
-          @click="setMode('classic')"
-        >
-          {{ t("editor.classic") }}
-        </button>
-        <button
-          class="mode-btn"
-          :class="{ on: settings.editorMode === 'fluid' }"
-          @click="setMode('fluid')"
-        >
-          {{ t("editor.fluid") }}
-        </button>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -164,38 +130,4 @@ async function setMode(mode: EditorMode): Promise<void> {
   background: var(--bg-hover);
 }
 
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.mode-switch {
-  display: flex;
-  padding: 3px;
-  background: var(--bg-subtle);
-  border: 1px solid var(--stroke);
-  border-radius: var(--radius-sm);
-}
-.mode-btn {
-  height: 26px;
-  padding: 0 12px;
-  border: none;
-  border-radius: 3px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-family: inherit;
-  font-size: 12.5px;
-  cursor: pointer;
-  transition: all 0.12s ease;
-}
-.mode-btn:hover {
-  color: var(--text-primary);
-}
-.mode-btn.on {
-  background: var(--accent);
-  color: var(--accent-text);
-  font-weight: 600;
-}
 </style>

@@ -13,7 +13,6 @@ export interface AppConfig {
   images_dir: string;
   language: string;
   theme: string;
-  editor_mode: string;
   sidebar_collapsed: boolean;
   autosave: boolean;
 }

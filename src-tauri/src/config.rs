@@ -15,8 +15,6 @@ pub struct AppConfig {
     pub language: String,
     /// system | light | dark
     pub theme: String,
-    /// classic | fluid
-    pub editor_mode: String,
     /// Left tree panel hidden (editor maximized).
     pub sidebar_collapsed: bool,
     /// Auto-save edits to disk (default off; Ctrl+S always works).
@@ -29,7 +27,6 @@ impl Default for AppConfig {
             images_dir: "images".into(),
             language: "system".into(),
             theme: "system".into(),
-            editor_mode: "classic".into(),
             sidebar_collapsed: false,
             autosave: false,
         }
