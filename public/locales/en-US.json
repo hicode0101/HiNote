@@ -41,6 +41,7 @@
     "classic": "Classic",
     "fluid": "Fluid",
     "edit": "Edit",
+    "split": "Split",
     "preview": "Preview",
     "emptyTitle": "No document open",
     "emptyDesc": "Select a document on the left, or create a new one to start editing",

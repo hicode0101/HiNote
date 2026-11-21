@@ -25,6 +25,9 @@ interface ToolItem {
   run: () => void;
 }
 
+// 预览视图：整个工具栏保持显示但禁用（原生 disabled，按钮不可点击）。
+defineProps<{ disabled?: boolean }>();
+
 const leftGroup: ToolItem[] = [
   { key: "bold", label: t("toolbar.bold"), icon: "bold", run: () => wrapSelection("**", "**", t("toolbar.bold")) },
   { key: "italic", label: t("toolbar.italic"), icon: "italic", run: () => wrapSelection("*", "*", t("toolbar.italic")) },
@@ -65,6 +68,7 @@ const historyGroup: ToolItem[] = [
           :key="item.key"
           class="tool-btn"
           :title="item.label"
+          :disabled="disabled"
           @click="item.run"
         >
           <Icon v-if="item.icon && item.key !== 'codeblock'" :name="item.icon" :size="17" />
@@ -118,11 +122,23 @@ const historyGroup: ToolItem[] = [
   cursor: pointer;
   transition: background 0.12s ease;
 }
-.tool-btn:hover {
+.tool-btn:not(:disabled):hover {
   background: var(--bg-hover);
 }
-.tool-btn:active {
+.tool-btn:not(:disabled):active {
   background: var(--bg-active);
+}
+
+/* 预览视图禁用态：整体变灰、光标 not-allowed，悬停不出现高亮/强调色 */
+.tool-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.tool-btn:disabled:hover {
+  background: transparent;
+}
+.tool-btn:disabled:hover .tool-text {
+  color: var(--text-secondary);
 }
 
 .tool-text {

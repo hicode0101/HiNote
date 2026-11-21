@@ -22,8 +22,8 @@ const activeFile = computed(() =>
   editor.path ? baseName(editor.path) : ""
 );
 
-// Mode switch + edit/preview tabs only make sense for Markdown notes;
-// other types (txt/code/json/pdf) open straight in the classic editor/viewer.
+// Mode switch only makes sense for Markdown notes; other types (txt/code/json/pdf)
+// open straight in the classic editor/viewer.
 const mdControls = computed(() => isMarkdownFile());
 
 // Breadcrumb icon reflects the file type (md/txt/code/pdf/image).
@@ -35,10 +35,6 @@ async function setMode(mode: EditorMode): Promise<void> {
   const { flushSave } = await import("@/stores/editor");
   await flushSave();
   await updateEditorMode(mode);
-}
-
-function setView(view: "edit" | "preview"): void {
-  editor.view = view;
 }
 </script>
 
@@ -80,24 +76,6 @@ function setView(view: "edit" | "preview"): void {
     </nav>
 
     <div class="header-right">
-      <!-- Classic mode: edit / preview tabs (image 2 style) — Markdown only -->
-      <div v-if="mdControls && settings.editorMode === 'classic'" class="view-tabs">
-        <button
-          class="view-tab"
-          :class="{ on: editor.view === 'edit' }"
-          @click="setView('edit')"
-        >
-          {{ t("editor.edit") }}
-        </button>
-        <button
-          class="view-tab"
-          :class="{ on: editor.view === 'preview' }"
-          @click="setView('preview')"
-        >
-          {{ t("editor.preview") }}
-        </button>
-      </div>
-
       <!-- Mode switch: classic / fluid (Markdown only) -->
       <div v-if="mdControls" class="mode-switch" :title="activeFile">
         <button
@@ -191,35 +169,6 @@ function setView(view: "edit" | "preview"): void {
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
-}
-
-.view-tabs {
-  display: flex;
-  padding: 3px;
-  background: var(--bg-subtle);
-  border: 1px solid var(--stroke);
-  border-radius: var(--radius-sm);
-}
-.view-tab {
-  height: 26px;
-  padding: 0 14px;
-  border: none;
-  border-radius: 3px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-family: inherit;
-  font-size: 12.5px;
-  cursor: pointer;
-  transition: all 0.12s ease;
-}
-.view-tab:hover {
-  color: var(--text-primary);
-}
-.view-tab.on {
-  background: var(--bg-layer);
-  color: var(--accent);
-  font-weight: 600;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .mode-switch {

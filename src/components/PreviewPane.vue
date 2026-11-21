@@ -4,6 +4,7 @@ import MarkdownIt from "markdown-it";
 import taskListsPlugin from "markdown-it-task-lists";
 import hljs from "highlight.js";
 import { refToAbsPath, displayUrl } from "@/lib/imgSrc";
+import { registerSplitPreview, onPreviewScrolled, syncPreviewFromEditor } from "@/lib/splitSync";
 import { api } from "@/lib/tauri";
 import { editor } from "@/stores/editor";
 import { activateFile } from "@/stores/workspace";
@@ -38,8 +39,20 @@ function onDocKey(e: KeyboardEvent): void {
   }
 }
 
-onMounted(() => document.addEventListener("keydown", onDocKey, true));
-onUnmounted(() => document.removeEventListener("keydown", onDocKey, true));
+/** 分屏模式下预览区滚动驱动编辑区同步（其他视图不需要）。 */
+function onScroll(): void {
+  if (editor.view === "split") onPreviewScrolled();
+}
+
+onMounted(() => {
+  document.addEventListener("keydown", onDocKey, true);
+  registerSplitPreview(scrollEl.value);
+  void resolveHtmlImages();
+});
+onUnmounted(() => {
+  document.removeEventListener("keydown", onDocKey, true);
+  registerSplitPreview(null);
+});
 
 /**
  * Links open inside HiNote: workspace files activate (image refs open the
@@ -87,6 +100,31 @@ const md: MarkdownIt = new MarkdownIt({
   },
 });
 md.use(taskListsPlugin, { enabled: true });
+
+// 分屏滚动同步锚点：给块级开标签标注源码起始行号（0 基），渲染为
+// data-line 属性，供 splitSync 把滚动位置映射回源码行。仅开标签
+// （nesting !== -1）经 renderToken 输出属性；fence/html_block 等自渲染
+// token 不产出锚点，同步时自动落到最近的上方锚点。
+md.core.ruler.push("hinote_data_line", (state) => {
+  for (const token of state.tokens) {
+    if (token.map && token.nesting !== -1) {
+      token.attrSet("data-line", String(token.map[0]));
+    }
+  }
+});
+
+// 默认 fence 渲染器遇到以 <pre 开头的 highlight 结果（本文件的 hljs
+// 路径全部如此）会原样返回、丢弃 token 属性。补一个规则把 data-line
+// 放回 <pre> 上，让代码块也能作为分屏滚动同步锚点。
+const defaultFence = md.renderer.rules.fence;
+md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+  const html = defaultFence
+    ? defaultFence(tokens, idx, options, env, self)
+    : self.renderToken(tokens, idx, options);
+  const map = tokens[idx].map;
+  if (!map) return html;
+  return html.replace("<pre", `<pre data-line="${map[0]}"`);
+};
 
 // Inline code gets auto-detected highlighting too (short snippets only).
 const defaultInlineCode = md.renderer.rules.code_inline;
@@ -138,15 +176,24 @@ async function resolveHtmlImages(): Promise<void> {
     const abs = refToAbsPath(raw, editor.path);
     if (abs) img.setAttribute("src", displayUrl(abs));
   }
+  // 分屏模式：内容变化（打字、切换文档、图片占位替换）后让预览区
+  // 重新跟随编辑区顶部可见源码行。
+  if (editor.view === "split") syncPreviewFromEditor();
 }
 
 watch(html, () => void resolveHtmlImages());
-onMounted(() => void resolveHtmlImages());
 </script>
 
 <template>
   <div class="preview-root">
-    <div ref="scrollEl" class="preview-scroll" @dblclick="onDblClick" @click="onClick" @contextmenu="onContextMenu">
+    <div
+      ref="scrollEl"
+      class="preview-scroll"
+      @dblclick="onDblClick"
+      @click="onClick"
+      @contextmenu="onContextMenu"
+      @scroll="onScroll"
+    >
       <div ref="mdEl" class="md-preview" v-html="html"></div>
     </div>
     <PreviewSearch ref="searchRef" :container="scrollEl" />

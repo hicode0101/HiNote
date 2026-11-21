@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, watch } from "vue";
 import { EditorState, Compartment, type Extension } from "@codemirror/state";
-import { EditorView, keymap } from "@codemirror/view";
+import { EditorView, keymap, lineNumbers } from "@codemirror/view";
 import {
   defaultKeymap,
   history,
@@ -33,6 +33,7 @@ import { editor, onContentChange, flushSave, isMarkdownFile } from "@/stores/edi
 import { openEditorMenu } from "@/stores/ui";
 import { resolvedTheme } from "@/lib/theme";
 import { registerEditorView, savePastedImage, insertAtCursor, selectionImageFile, deleteSelectionCheckingImage } from "@/lib/markdownActions";
+import { registerSplitEditor, onEditorScrolled } from "@/lib/splitSync";
 import { formatDocument } from "@/lib/formatActions";
 import { langForPath } from "@/lib/languages";
 import { api } from "@/lib/tauri";
@@ -129,6 +130,14 @@ function editorTheme(dark: boolean): Extension {
       // Must outrank CodeMirror baseTheme's focused selection rule.
       "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
         backgroundColor: dark ? "#294d6e" : "#add6ff",
+      },
+      // 行号槽（参考 HiEditor 图1）：与编辑区同底色、无分隔边框，数字用弱化灰
+      ".cm-gutters": {
+        backgroundColor: "transparent",
+        border: "none",
+      },
+      ".cm-lineNumbers .cm-gutterElement": {
+        color: dark ? "#858585" : "#a1a1a1",
       },
     },
     { dark }
@@ -330,6 +339,8 @@ function baseExtensions(): Extension[] {
       },
     ]),
     EditorView.lineWrapping,
+    // 行号槽：编辑框左侧行号（图1 样式），全部文件类型通用
+    lineNumbers(),
     highlightSelectionMatches(),
     // Provides the searchQuery state used by setSearchQuery/findNext/replace.
     search(),
@@ -357,18 +368,29 @@ function buildView(): void {
     parent: host.value,
   });
   registerEditorView(cmView);
+  registerSplitEditor(cmView);
   // Capture phase: run before CodeMirror's own paste handler so image pastes
   // (which may also carry text/html) don't get inserted twice.
   cmView.dom.addEventListener("paste", onPaste, true);
+  cmView.scrollDOM.addEventListener("scroll", onCmScroll);
   host.value.addEventListener("contextmenu", onContextMenu);
 }
 
 function destroyView(): void {
   host.value?.removeEventListener("contextmenu", onContextMenu);
-  cmView?.dom.removeEventListener("paste", onPaste, true);
+  if (cmView) {
+    cmView.dom.removeEventListener("paste", onPaste, true);
+    cmView.scrollDOM.removeEventListener("scroll", onCmScroll);
+  }
   cmView?.destroy();
   cmView = null;
   registerEditorView(null);
+  registerSplitEditor(null);
+}
+
+/** 分屏模式下编辑区滚动驱动预览区同步（仅 editor.view === "split" 时生效）。 */
+function onCmScroll(): void {
+  if (editor.view === "split") onEditorScrolled();
 }
 
 function onContextMenu(e: MouseEvent): void {

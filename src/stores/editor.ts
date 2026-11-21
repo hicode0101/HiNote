@@ -12,8 +12,8 @@ export const editor = reactive({
   savedContent: "",
   dirty: false,
   saving: false,
-  /** Classic-mode sub-view, mirroring the 编辑/预览 tabs. */
-  view: "edit" as "edit" | "preview",
+  /** Classic-mode sub-view: edit / split (分屏编辑) / preview. */
+  view: "edit" as "edit" | "split" | "preview",
   cursor: { line: 1, col: 1 },
   /** Bumped on every open/close/reload so async editor callbacks can detect staleness. */
   generation: 0,

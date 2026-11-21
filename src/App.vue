@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from "vue";
+import { computed, onMounted, onUnmounted } from "vue";
 import { listen } from "@tauri-apps/api/event";
 import { t } from "@/lib/i18n";
 import { settings } from "@/stores/settings";
@@ -13,6 +13,7 @@ import Sidebar from "./components/Sidebar.vue";
 import WelcomeView from "./components/WelcomeView.vue";
 import EditorHeader from "./components/EditorHeader.vue";
 import FormatToolbar from "./components/FormatToolbar.vue";
+import ViewTabs from "./components/ViewTabs.vue";
 import EditorClassic from "./components/EditorClassic.vue";
 import EditorFluid from "./components/EditorFluid.vue";
 import PreviewPane from "./components/PreviewPane.vue";
@@ -31,6 +32,9 @@ function onKeydown(e: KeyboardEvent): void {
     void flushSave();
   }
 }
+
+// 经典模式的分屏编辑视图（左编辑 / 右预览），仅对 Markdown 笔记生效。
+const isSplitView = computed(() => isMarkdownFile() && editor.view === "split");
 
 // ===== Auto-refresh the tree on external FS changes =====
 // The Rust watcher emits "workspace-changed" (already debounced + diffed);
@@ -116,9 +120,19 @@ onUnmounted(() => {
           <!-- Fluid (WYSIWYG) is Markdown-only; other file types stay classic. -->
           <EditorFluid v-else-if="settings.editorMode === 'fluid' && isMarkdownFile()" />
           <template v-else>
-            <FormatToolbar v-if="editor.view === 'edit' && isMarkdownFile()" />
-            <EditorClassic v-show="editor.view === 'edit'" />
-            <PreviewPane v-if="editor.view === 'preview' && isMarkdownFile()" />
+            <!-- 工具栏三种视图都显示；仅预览视图整体禁用（不可点击） -->
+            <FormatToolbar v-if="isMarkdownFile()" :disabled="editor.view === 'preview'" />
+            <!-- 编辑/分屏编辑/预览切换在工具栏下面（HiEditor 图1 布局），三种视图都显示 -->
+            <ViewTabs />
+            <!-- 经典模式内容容器：编辑/预览为单列，分屏时横向排列左右两栏。
+                 EditorClassic 始终挂载（v-show 控制），切换视图不重建 CM6 实例。 -->
+            <div class="classic-body" :class="{ split: isSplitView }">
+              <EditorClassic v-show="editor.view !== 'preview'" />
+              <div v-if="isSplitView" class="split-divider"></div>
+              <PreviewPane
+                v-if="isMarkdownFile() && (editor.view === 'preview' || editor.view === 'split')"
+              />
+            </div>
           </template>
           <StatusBar v-if="!isPdfFile()" />
         </template>
@@ -187,6 +201,33 @@ onUnmounted(() => {
   flex-direction: column;
   flex: 1;
   min-width: 0;
+}
+
+/* 经典模式内容容器：编辑/预览时单列占满，分屏编辑时横向排成左右两栏 */
+.classic-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.classic-body.split {
+  flex-direction: row;
+}
+/* 分屏两栏各占一半：flex 子项默认 min-width:auto，预览里不换行的代码块
+   会把预览栏最小宽度撑到整行代码长度，把编辑区挤扁。显式放开约束后由
+   flex-basis 0 均分；长代码行由代码块自身的 overflow:auto 横向滚动。 */
+.classic-body.split > .cm-wrap,
+.classic-body.split > .preview-root {
+  min-width: 0;
+}
+.split-divider {
+  flex-shrink: 0;
+  width: 1px;
+  background: var(--stroke);
+}
+/* 分屏时预览区宽度减半，边距相应收窄 */
+.classic-body.split .preview-scroll {
+  padding: 16px 24px 40px;
 }
 
 .editor-empty {
