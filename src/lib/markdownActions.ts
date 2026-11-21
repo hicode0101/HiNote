@@ -6,7 +6,7 @@ import { refToAbsPath } from "./imgSrc";
 import { settings } from "@/stores/settings";
 import { confirmDialog } from "@/stores/dialog";
 import { showToast } from "@/stores/ui";
-import { editor } from "@/stores/editor";
+import { editor, onContentChange } from "@/stores/editor";
 
 let view: EditorView | null = null;
 
@@ -184,23 +184,35 @@ export function deleteSelection(): void {
 
 // ===== Deleting a workspace image offers to remove the physical file =====
 // Classic (CodeMirror) edition: the trigger is strict — the selection must be
-// exactly one complete markdown image tag whose target resolves inside the
-// workspace. Partial selections / plain text deletions never prompt.
+// exactly one complete image tag (markdown `![](...)` or embedded HTML
+// `<img src="…">`) whose target resolves inside the workspace. Partial
+// selections / plain text deletions never prompt.
 
 /** Complete inline image tag: `![alt](path)`, `![alt](<path>)`, optional title. */
 const MD_IMAGE_FULL_RE = /^!\[([^\]]*)\]\(\s*(?:<([^>]*)>|([^\s)]+))(?:\s+"[^"]*")?\s*\)$/;
 
+/** Complete embedded HTML image tag: `<img src="…" …>`, attributes in any order. */
+const IMG_TAG_FULL_RE = /^<img\b[^>]*?\bsrc=(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))[^>]*\/?>$/i;
+
 /**
- * When the current selection is exactly one complete markdown image tag whose
- * target is a workspace-local image file, return that absolute path.
+ * When the current selection is exactly one complete image tag (markdown or
+ * HTML `<img>`) whose target is a workspace-local image file, return that
+ * absolute path.
  */
 export function selectionImageFile(): string | null {
   if (!view || !editor.path) return null;
   const sel = view.state.selection.main;
   if (sel.from === sel.to) return null;
-  const m = MD_IMAGE_FULL_RE.exec(view.state.sliceDoc(sel.from, sel.to).trim());
-  if (!m) return null;
-  const dest = (m[2] ?? m[3] ?? "").trim();
+  const text = view.state.sliceDoc(sel.from, sel.to).trim();
+  const md = MD_IMAGE_FULL_RE.exec(text);
+  let dest: string;
+  if (md) {
+    dest = (md[2] ?? md[3] ?? "").trim();
+  } else {
+    const img = IMG_TAG_FULL_RE.exec(text);
+    if (!img) return null;
+    dest = (img[1] ?? img[2] ?? img[3] ?? "").trim();
+  }
   if (!dest || /^(https?|data|asset|blob|file):/i.test(dest)) return null;
   const abs = refToAbsPath(dest, editor.path);
   if (!abs || !isImagePath(abs)) return null;
@@ -228,6 +240,108 @@ export async function deleteSelectionCheckingImage(): Promise<void> {
   });
   focusAndSync();
   if (!abs) return;
+  const ok = await confirmDialog({
+    title: t("dialog.deleteImageTitle"),
+    message: t("dialog.deleteImageBody", { names: baseName(abs) }),
+    danger: true,
+  });
+  if (!ok) return;
+  try {
+    await api.deletePath(abs);
+  } catch {
+    showToast(t("dialog.deleteImageFailed"));
+  }
+}
+
+// ===== 预览右键菜单：删除图片 =====
+
+/** Markdown 图片引用（用于在文档源码中定位 `![](...)`）。 */
+const MD_IMAGE_REF_RE = /(!\[[^\]]*\]\()(\s*)(<[^>]*>|[^)\n]+?)(\s*\))/g;
+/** 内嵌 HTML `<img src="…">`（引号风格各异）。 */
+const IMG_SRC_RE = /(<img\b[^>]*?\bsrc=)(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))([^>]*>)/gi;
+
+/**
+ * 从文档源码移除所有被 `match` 命中的图片引用（`![](...)` 与 HTML `<img>`）。
+ * 整行只承载图片时连行删除，避免留下空行。返回 null 表示没有命中。
+ */
+function stripImageRefs(
+  content: string,
+  match: (src: string) => boolean
+): string | null {
+  const eol = /\r\n/.test(content) ? "\r\n" : "\n";
+  const lines = content.split(/\r\n|\n/);
+  const out: string[] = [];
+  let count = 0;
+  for (const line of lines) {
+    let local = 0;
+    let next = line.replace(MD_IMAGE_REF_RE, (whole: string, _lead: string, _ws: string, dest: string) => {
+      let inner = dest.trim();
+      if (inner.startsWith("<") && inner.endsWith(">")) inner = inner.slice(1, -1);
+      if (inner && match(inner)) {
+        local++;
+        return "";
+      }
+      return whole;
+    });
+    next = next.replace(IMG_SRC_RE, (
+      whole: string,
+      _lead: string,
+      dq: string | undefined,
+      sq: string | undefined,
+      uq: string | undefined,
+      tail: string | undefined
+    ) => {
+      const src = (dq ?? sq ?? uq ?? "").trim();
+      if (src && tail !== undefined && match(src)) {
+        local++;
+        return "";
+      }
+      return whole;
+    });
+    count += local;
+    if (local > 0 && next.trim() === "") {
+      // 整行只有图片：删除整行，并顺带去掉紧邻的前一个空行，避免留下连续空行
+      if (out.length && out[out.length - 1].trim() === "") out.pop();
+      continue;
+    }
+    out.push(next);
+  }
+  return count > 0 ? out.join(eol) : null;
+}
+
+/** 按解析后的绝对路径匹配（覆盖相对/绝对/URL 编码等不同书写形式，斜向归一）。 */
+function matchByAbs(abs: string): (src: string) => boolean {
+  const target = abs.replace(/\\/g, "/").toLowerCase();
+  return (src: string): boolean => {
+    if (!editor.path) return false;
+    const a = refToAbsPath(src.trim(), editor.path);
+    return !!a && a.replace(/\\/g, "/").toLowerCase() === target;
+  };
+}
+
+/** 按字面量匹配（外部 http/data 图片的 src 原样出现在文档里）。 */
+function matchByLiteral(raw: string): (src: string) => boolean {
+  const target = raw.trim();
+  return (src: string): boolean => src.trim() === target;
+}
+
+/**
+ * 预览右键“删除图片”：先从文档源码移除图片引用（预览与后台编辑器即时
+ * 同步）；图片位于工作区内时，追加确认是否删除物理文件（取消则文件保留）。
+ * `abs` 为本地图片绝对路径；外部图片传 null，按 `rawSrc` 字面量匹配。
+ */
+export async function deletePreviewImage(rawSrc: string, abs: string | null): Promise<void> {
+  if (!editor.path) return;
+  const src = rawSrc.trim();
+  if (!src) return;
+  const next = stripImageRefs(editor.content, abs ? matchByAbs(abs) : matchByLiteral(src));
+  if (next === null) return;
+  onContentChange(next);
+
+  if (!abs || !isImagePath(abs)) return; // 外部/非本地图片：只移除引用
+  const ws = settings.workspace?.replace(/[\\/]+$/, "").toLowerCase();
+  const lower = abs.toLowerCase();
+  if (!ws || (lower !== ws && !lower.startsWith(ws + "\\") && !lower.startsWith(ws + "/"))) return;
   const ok = await confirmDialog({
     title: t("dialog.deleteImageTitle"),
     message: t("dialog.deleteImageBody", { names: baseName(abs) }),

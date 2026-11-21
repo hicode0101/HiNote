@@ -12,6 +12,7 @@ import {
   doUndo, doRedo, editorCut, editorCopy, editorPaste, editorSelectAll,
   hasSelection, deleteSelectionCheckingImage, transformUpper, transformLower,
   transformCapitalize, copySelectionText, pasteFromClipboardIntoActive,
+  deletePreviewImage,
 } from "@/lib/markdownActions";
 import Icon from "./Icon.vue";
 
@@ -88,12 +89,20 @@ function sep(key: string): EditorMenuItem {
 
 const editorItems = computed<EditorMenuItem[]>(() => {
   // Clipboard-only menu (preview pane: copy enabled, paste grayed). Recomputed
-  // on every open so the DOM-selection state is fresh.
+  // on every open so the DOM-selection state is fresh. 删除图片仅在右键命中
+  // 图片时可点；点击后先移除文档引用，工作区内图片再确认是否删物理文件。
   if (ui.editorMenu.clipboardOnly) {
     const sel = window.getSelection()?.toString() ?? "";
     return [
       { key: "copy", label: t("editmenu.copy"), shortcut: "Ctrl+C", disabled: !sel, action: () => void copySelectionText() },
       { key: "paste", label: t("editmenu.paste"), shortcut: "Ctrl+V", disabled: !ui.editorMenu.canPaste, action: () => void pasteFromClipboardIntoActive() },
+      sep("sepImage"),
+      {
+        key: "deleteImage",
+        label: t("editmenu.deleteImage"),
+        disabled: !ui.editorMenu.onImage,
+        action: () => void deletePreviewImage(ui.editorMenu.imageSrc ?? "", ui.editorMenu.imageFile),
+      },
     ];
   }
   const hasSel = hasSelection();

@@ -69,7 +69,9 @@ export async function openFile(path: string): Promise<void> {
     editor.content = out.text;
     editor.savedContent = out.text;
     editor.dirty = false;
-    editor.view = "edit";
+    // Markdown 恢复用户最近一次切换的视图（编辑/分屏/预览，随切换持久化）；
+    // 其他文本类型没有视图切换，恒为编辑视图。
+    editor.view = langForPath(path) === "md" ? settings.defaultView : "edit";
     editor.cursor = { line: 1, col: 1 };
     editor.savedMtime = await readMtime(path);
     editor.encoding = out.encoding;

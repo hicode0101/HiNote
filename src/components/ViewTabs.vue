@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { t } from "@/lib/i18n";
 import { editor, isMarkdownFile } from "@/stores/editor";
+import { updateDefaultView, type EditorView } from "@/stores/settings";
 
-function setView(view: "edit" | "split" | "preview"): void {
+function setView(view: EditorView): void {
   editor.view = view;
+  // 记住用户的视图选择：后续打开 Markdown 默认进入该视图（持久化到配置）。
+  void updateDefaultView(view);
 }
 </script>
 

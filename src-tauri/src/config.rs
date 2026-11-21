@@ -15,6 +15,8 @@ pub struct AppConfig {
     pub language: String,
     /// system | light | dark
     pub theme: String,
+    /// Markdown 打开时默认的经典子视图：edit | split | preview
+    pub editor_view: String,
     /// Left tree panel hidden (editor maximized).
     pub sidebar_collapsed: bool,
     /// Auto-save edits to disk (default off; Ctrl+S always works).
@@ -27,6 +29,7 @@ impl Default for AppConfig {
             images_dir: "images".into(),
             language: "system".into(),
             theme: "system".into(),
+            editor_view: "edit".into(),
             sidebar_collapsed: false,
             autosave: false,
         }

@@ -166,7 +166,8 @@
     "delete": "Delete",
     "upper": "UPPERCASE",
     "lower": "lowercase",
-    "capitalize": "Capitalize Each Word"
+    "capitalize": "Capitalize Each Word",
+    "deleteImage": "Delete Image"
   },
   "format": {
     "formatted": "Formatted",

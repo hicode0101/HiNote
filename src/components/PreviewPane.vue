@@ -3,9 +3,9 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import MarkdownIt from "markdown-it";
 import taskListsPlugin from "markdown-it-task-lists";
 import hljs from "highlight.js";
-import { refToAbsPath, displayUrl } from "@/lib/imgSrc";
+import { refToAbsPath, displayUrl, assetUrlToAbsPath } from "@/lib/imgSrc";
 import { registerSplitPreview, onPreviewScrolled, syncPreviewFromEditor } from "@/lib/splitSync";
-import { api } from "@/lib/tauri";
+import { api, isImagePath } from "@/lib/tauri";
 import { editor } from "@/stores/editor";
 import { activateFile } from "@/stores/workspace";
 import { openEditorMenu } from "@/stores/ui";
@@ -25,9 +25,21 @@ function onDblClick(e: MouseEvent): void {
 }
 
 // Read-only surface: clipboard menu with copy only (paste stays grayed).
+// 命中图片时携带图片信息，供“删除图片”菜单项使用：
+// - 本地图片解析出绝对路径（asset URL → path），工作区内图片可联动删除物理文件；
+// - 外部 http/data 图片仅传原始 src，删除时按字面量移除文档引用。
 function onContextMenu(e: MouseEvent): void {
   e.preventDefault();
-  openEditorMenu(e.clientX, e.clientY, { clipboardOnly: true, canPaste: false });
+  const img = (e.target as Element).closest("img");
+  const rawSrc = img?.getAttribute("src") ?? "";
+  const abs = rawSrc ? assetUrlToAbsPath(rawSrc) : null;
+  openEditorMenu(e.clientX, e.clientY, {
+    clipboardOnly: true,
+    canPaste: false,
+    onImage: !!img,
+    imageFile: abs && isImagePath(abs) ? abs : null,
+    imageSrc: rawSrc || null,
+  });
 }
 
 // Ctrl+F opens our own preview search instead of WebView2's find bar.
