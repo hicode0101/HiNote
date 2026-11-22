@@ -19,3 +19,6 @@ src-tauri/gen/schemas
 
 # vditor offline assets copied by scripts/copy-vditor.mjs
 public/vditor
+
+# drawio webapp fetched by scripts/fetch-drawio.mjs
+public/drawio

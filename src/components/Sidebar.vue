@@ -194,6 +194,9 @@ function onTreeContext(e: MouseEvent): void {
         <button class="icon-btn" :title="t('sidebar.newNote')" @click="createDocument(settings.workspace!)">
           <Icon name="documentPlus" :size="16" />
         </button>
+        <button class="icon-btn" :title="t('sidebar.newDio')" @click="createDocument(settings.workspace!, 'dio')">
+          <Icon name="flowchartPlus" :size="16" />
+        </button>
         <button class="icon-btn" :title="t('sidebar.newFolder')" @click="createFolder(settings.workspace!)">
           <Icon name="folderPlus" :size="16" />
         </button>
@@ -424,6 +427,9 @@ function onTreeContext(e: MouseEvent): void {
 }
 .hit-icon.type-image {
   color: #0f7b6c;
+}
+.hit-icon.type-dio {
+  color: #f08705;
 }
 .hit-icon.type-code {
   color: #8250df;

@@ -93,6 +93,19 @@ export const api = {
     }),
   pickDirectory: () => invoke<string | null>("pick_directory"),
   pickImageFile: () => invoke<string | null>("pick_image_file"),
+  /** Save exported bytes (e.g. drawio SVG/PNG) via a native save dialog. */
+  exportFileAs: (args: {
+    dataBase64: string;
+    suggestedName: string;
+    filterName: string;
+    extensions: string[];
+  }) =>
+    invoke<string | null>("export_file_as", {
+      dataBase64: args.dataBase64,
+      suggestedName: args.suggestedName,
+      filterName: args.filterName,
+      extensions: args.extensions,
+    }),
   saveImageAs: (args: {
     path?: string | null;
     dataBase64?: string | null;

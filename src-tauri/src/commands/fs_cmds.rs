@@ -42,6 +42,8 @@ pub(crate) fn file_type_of(p: &Path) -> Option<&'static str> {
     Some(match ext.as_str() {
         "md" | "markdown" | "mdown" | "mkd" => "md",
         "txt" | "log" => "txt",
+        // drawio 矢量流程图（mxfile XML 纯文本），由内置 drawio 编辑器打开
+        "dio" => "dio",
         "pdf" => "pdf",
         "png" | "jpg" | "jpeg" | "gif" | "webp" | "bmp" | "svg" => "image",
         "json" | "jsonc" => "json",

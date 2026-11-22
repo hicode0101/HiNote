@@ -49,4 +49,7 @@ export const icons: Record<string, string> = {
   refresh: `<path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>`,
   // Document with folded corner + PDF lettering
   pdf: `<path d="M6.3 3.2h6.8c.26 0 .52.1.71.3l4.7 4.7c.19.18.29.44.29.7v10.6a1.5 1.5 0 0 1-1.5 1.5H6.3a1.5 1.5 0 0 1-1.5-1.5V4.7a1.5 1.5 0 0 1 1.5-1.5z"/><path d="M13.2 3.6V9h5.4"/><text x="7" y="16.4" font-size="7.4" font-weight="700" fill="currentColor" stroke="none" font-family="Segoe UI, sans-serif">P</text>`,
+  // Flowchart: rounded start block, decision diamond, connector arrows
+  flowchart: `<rect x="3.5" y="4" width="7.5" height="4.6" rx="1.2"/><path d="M11 13.2l3.4-2.6 3.4 2.6-3.4 2.6z"/><rect x="13.4" y="4.2" width="4.6" height="4.2" rx="2.1"/><path d="M7.2 8.6v3.1a1.4 1.4 0 0 0 1.4 1.4h2.4"/><path d="M14.4 8.4v2.2"/><path d="M14.4 15.8v2.7h-6"/><path d="M8.4 18.5 6.6 17.2v2.6z" fill="currentColor" stroke="none"/>`,
+  flowchartPlus: `<rect x="3.5" y="4" width="7.5" height="4.6" rx="1.2"/><path d="M11 13.2l3.4-2.6 3.4 2.6-3.4 2.6z"/><rect x="13.4" y="4.2" width="4.6" height="4.2" rx="2.1"/><path d="M7.2 8.6v3.1a1.4 1.4 0 0 0 1.4 1.4h2.4"/><path d="M14.4 8.4v2.2"/><path d="M14.4 15.8v2.7h-6"/><path d="M8.4 18.5 6.6 17.2v2.6z" fill="currentColor" stroke="none"/><path d="M18.4 14.2v5M15.9 16.7h5"/>`,
 };

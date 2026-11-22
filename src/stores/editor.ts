@@ -45,6 +45,11 @@ export function isPdfFile(): boolean {
   return langForPath(editor.path) === "pdf";
 }
 
+/** Current file is a drawio flowchart opened in the embedded editor. */
+export function isDioFile(): boolean {
+  return langForPath(editor.path) === "dio";
+}
+
 export async function openFile(path: string): Promise<void> {
   await flushSave();
   // PDF: binary — do not run through text decoding; the viewer reads it itself.

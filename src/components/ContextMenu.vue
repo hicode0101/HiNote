@@ -39,6 +39,7 @@ const items = computed<MenuItem[]>(() => {
     return [
       { key: "newDoc", label: t("menu.newDoc"), icon: "documentPlus", action: () => createDocument(settings.workspace!, "md") },
       { key: "newText", label: t("menu.newText"), icon: "note", action: () => createDocument(settings.workspace!, "txt") },
+      { key: "newDio", label: t("menu.newDio"), icon: "flowchartPlus", action: () => createDocument(settings.workspace!, "dio") },
       { key: "newFolder", label: t("menu.newFolder"), icon: "folderPlus", action: () => createFolder(settings.workspace!) },
       { key: "reveal", label: t("menu.reveal"), icon: "open", action: () => revealNode(null) },
       { key: "sep1", label: "", icon: "", separator: true, action: () => undefined },
@@ -49,6 +50,7 @@ const items = computed<MenuItem[]>(() => {
     return [
       { key: "newDoc", label: t("menu.newDoc"), icon: "documentPlus", action: () => createDocument(node.path, "md") },
       { key: "newText", label: t("menu.newText"), icon: "note", action: () => createDocument(node.path, "txt") },
+      { key: "newDio", label: t("menu.newDio"), icon: "flowchartPlus", action: () => createDocument(node.path, "dio") },
       { key: "newFolder", label: t("menu.newFolder"), icon: "folderPlus", action: () => createFolder(node.path) },
       { key: "rename", label: t("menu.rename"), icon: "edit", action: () => renameNode(node) },
       { key: "reveal", label: t("menu.reveal"), icon: "open", action: () => revealNode(node) },

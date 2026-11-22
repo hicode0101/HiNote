@@ -3,7 +3,7 @@ import { computed, onMounted, onUnmounted } from "vue";
 import { listen } from "@tauri-apps/api/event";
 import { t } from "@/lib/i18n";
 import { settings } from "@/stores/settings";
-import { editor, flushSave, handleFileChangedEvent, isMarkdownFile, isPdfFile } from "@/stores/editor";
+import { editor, flushSave, handleFileChangedEvent, isDioFile, isMarkdownFile, isPdfFile } from "@/stores/editor";
 import { TREE_FILE_TYPE } from "@/lib/dropRef";
 import { toast, ui } from "@/stores/ui";
 import { refreshTree } from "@/stores/workspace";
@@ -17,6 +17,7 @@ import ViewTabs from "./components/ViewTabs.vue";
 import EditorClassic from "./components/EditorClassic.vue";
 import PreviewPane from "./components/PreviewPane.vue";
 import PdfViewer from "./components/PdfViewer.vue";
+import DrawioEditor from "./components/DrawioEditor.vue";
 import StatusBar from "./components/StatusBar.vue";
 import SettingsDialog from "./components/SettingsDialog.vue";
 import AboutDialog from "./components/AboutDialog.vue";
@@ -116,6 +117,8 @@ onUnmounted(() => {
         <template v-if="editor.path">
           <!-- PDF: dedicated read-only viewer -->
           <PdfViewer v-if="isPdfFile()" />
+          <!-- drawio 矢量流程图：内嵌官方 drawio 编辑器（*.dio） -->
+          <DrawioEditor v-else-if="isDioFile()" />
           <template v-else>
             <!-- 工具栏三种视图都显示；仅预览视图整体禁用（不可点击） -->
             <FormatToolbar v-if="isMarkdownFile()" :disabled="editor.view === 'preview'" />
@@ -131,7 +134,7 @@ onUnmounted(() => {
               />
             </div>
           </template>
-          <StatusBar v-if="!isPdfFile()" />
+          <StatusBar v-if="!isPdfFile() && !isDioFile()" />
         </template>
 
         <div v-else class="editor-empty">
@@ -139,10 +142,16 @@ onUnmounted(() => {
             <Icon name="note" :size="44" class="empty-icon" />
             <div class="empty-title">{{ t("editor.emptyTitle") }}</div>
             <div class="empty-desc">{{ t("editor.emptyDesc") }}</div>
-            <button class="btn primary empty-btn" @click="createDocument(settings.workspace!, 'md')">
-              <Icon name="documentPlus" :size="16" />
-              {{ t("editor.newDoc") }}
-            </button>
+            <div class="empty-actions">
+              <button class="btn primary empty-btn" @click="createDocument(settings.workspace!, 'md')">
+                <Icon name="documentPlus" :size="16" />
+                {{ t("editor.newDoc") }}
+              </button>
+              <button class="btn empty-btn" @click="createDocument(settings.workspace!, 'dio')">
+                <Icon name="flowchartPlus" :size="16" />
+                {{ t("editor.newDio") }}
+              </button>
+            </div>
           </div>
         </div>
       </main>
@@ -241,6 +250,11 @@ onUnmounted(() => {
   align-items: center;
   text-align: center;
   padding: 40px;
+}
+
+.empty-actions {
+  display: flex;
+  gap: 10px;
 }
 
 .empty-icon {

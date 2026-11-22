@@ -34,6 +34,28 @@ function ensureTxtExt(name: string): string {
   return /\.txt$/i.test(name) ? name : `${name}.txt`;
 }
 
+function ensureDioExt(name: string): string {
+  return /\.dio$/i.test(name) ? name : `${name}.dio`;
+}
+
+/**
+ * 新建 *.dio 流程图的初始内容：合法的最小 mxfile XML（drawio 格式），
+ * 打开即可拖入形状；DrawioEditor 在文件内容为空时也用它兜底。
+ */
+export const DIO_TEMPLATE = [
+  '<mxfile host="HiNote" version="32.7.4">',
+  '  <diagram id="page-1" name="Page-1">',
+  '    <mxGraphModel dx="1024" dy="768" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">',
+  '      <root>',
+  '        <mxCell id="0" />',
+  '        <mxCell id="1" parent="0" />',
+  '      </root>',
+  '    </mxGraphModel>',
+  '  </diagram>',
+  '</mxfile>',
+  "",
+].join("\n");
+
 async function uniqueTarget(dir: string, name: string): Promise<string> {
   const candidate = joinPath(dir, name);
   if (!(await api.pathExists(candidate))) return candidate;
@@ -47,14 +69,15 @@ async function uniqueTarget(dir: string, name: string): Promise<string> {
   throw new Error("name_exhausted");
 }
 
-export type NewFileKind = "md" | "txt";
+export type NewFileKind = "md" | "txt" | "dio";
 
-/** Create a new file from the tree menu: markdown note or plain text. */
+/** Create a new file from the tree menu: markdown note, plain text or drawio flowchart. */
 export async function createDocument(parentDir: string, kind: NewFileKind = "md"): Promise<void> {
-  const isMd = kind === "md";
   const name = await promptDialog({
-    title: isMd ? t("dialog.newDocTitle") : t("dialog.newTextTitle"),
-    value: isMd ? t("editor.newDoc") : t("editor.newText"),
+    title: t(
+      kind === "md" ? "dialog.newDocTitle" : kind === "dio" ? "dialog.newDioTitle" : "dialog.newTextTitle"
+    ),
+    value: t(kind === "md" ? "editor.newDoc" : kind === "dio" ? "editor.newDio" : "editor.newText"),
     placeholder: t("dialog.namePlaceholder"),
     okText: t("dialog.ok"),
     cancelText: t("dialog.cancel"),
@@ -62,10 +85,13 @@ export async function createDocument(parentDir: string, kind: NewFileKind = "md"
   if (name === null) return;
   const trimmed = name.trim();
   if (!trimmed) return;
-  const fileName = isMd ? ensureMdExt(trimmed) : ensureTxtExt(trimmed);
+  const fileName =
+    kind === "md" ? ensureMdExt(trimmed) : kind === "dio" ? ensureDioExt(trimmed) : ensureTxtExt(trimmed);
   const target = await uniqueTarget(parentDir, fileName);
   try {
-    await api.createFile(target, isMd ? `# ${stripMdExt(fileName)}\n` : "");
+    const initial =
+      kind === "md" ? `# ${stripMdExt(fileName)}\n` : kind === "dio" ? DIO_TEMPLATE : "";
+    await api.createFile(target, initial);
     await refreshTree();
     expandPath(parentDir);
     await activateFile(target);

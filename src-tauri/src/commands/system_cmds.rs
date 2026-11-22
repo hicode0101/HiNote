@@ -53,6 +53,52 @@ pub async fn pick_image_file(app: AppHandle) -> Result<Option<String>, String> {
         .ok_or_else(|| "dialog_channel_closed".to_string())
 }
 
+/// Save exported file bytes (base64, e.g. drawio SVG/PNG export) via a
+/// native save dialog. Returns the written path, or None when cancelled.
+#[tauri::command]
+pub async fn export_file_as(
+    app: AppHandle,
+    data_base64: String,
+    suggested_name: String,
+    filter_name: String,
+    extensions: Vec<String>,
+) -> Result<Option<String>, String> {
+    use base64::Engine;
+    use tauri_plugin_dialog::DialogExt;
+    let data = base64::engine::general_purpose::STANDARD
+        .decode(data_base64.as_bytes())
+        .map_err(|e| e.to_string())?;
+    let exts: Vec<String> = extensions
+        .iter()
+        .map(|e| e.trim_start_matches('.').to_lowercase())
+        .filter(|e| !e.is_empty())
+        .collect();
+    let fallback_ext = exts.first().cloned().unwrap_or_else(|| "svg".into());
+
+    let (tx, mut rx) = tauri::async_runtime::channel::<Option<String>>(1);
+    let filter_refs: Vec<&str> = exts.iter().map(String::as_str).collect();
+    app.dialog()
+        .file()
+        .set_file_name(&suggested_name)
+        .add_filter(&filter_name, &filter_refs)
+        .save_file(move |file_path| {
+            let _ = tx.blocking_send(file_path.map(|p| p.to_string()));
+        });
+    let picked = rx
+        .recv()
+        .await
+        .ok_or_else(|| "dialog_channel_closed".to_string())?;
+    let Some(picked) = picked else {
+        return Ok(None); // cancelled
+    };
+    let mut target = std::path::PathBuf::from(&picked);
+    if target.extension().is_none() {
+        target.set_extension(&fallback_ext);
+    }
+    std::fs::write(&target, data).map_err(|e| e.to_string())?;
+    Ok(Some(target.to_string_lossy().to_string()))
+}
+
 #[tauri::command]
 pub fn reveal_in_explorer(path: String) -> Result<(), String> {
     reveal_item_in_dir(&path).map_err(|e| e.to_string())

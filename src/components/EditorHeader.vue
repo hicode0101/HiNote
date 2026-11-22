@@ -2,8 +2,9 @@
 import { computed } from "vue";
 import { t } from "@/lib/i18n";
 import { settings, toggleSidebar } from "@/stores/settings";
-import { editor } from "@/stores/editor";
+import { editor, isDioFile } from "@/stores/editor";
 import { closeActiveFile } from "@/stores/workspace";
+import { exportDio, dio } from "@/stores/dio";
 import { langForPath, langIcon } from "@/lib/languages";
 import Icon from "./Icon.vue";
 
@@ -60,6 +61,17 @@ const crumbIcon = computed(() =>
       </button>
     </nav>
 
+    <!-- drawio 流程图：导出为 SVG / PNG（数据由 iframe 内 drawio 渲染） -->
+    <div v-if="isDioFile()" class="header-actions">
+      <button class="btn dio-export-btn" :disabled="dio.exporting" @click="exportDio('svg')">
+        <Icon name="download" :size="14" />
+        {{ t("dio.exportSvg") }}
+      </button>
+      <button class="btn dio-export-btn" :disabled="dio.exporting" @click="exportDio('png')">
+        <Icon name="download" :size="14" />
+        {{ t("dio.exportPng") }}
+      </button>
+    </div>
   </div>
 </template>
 
@@ -128,6 +140,24 @@ const crumbIcon = computed(() =>
 .close-file-btn:hover {
   color: var(--text-primary);
   background: var(--bg-hover);
+}
+
+/* drawio 导出按钮（仅 *.dio 打开时显示在头部右侧） */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.dio-export-btn {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 12px;
+  gap: 5px;
+}
+.dio-export-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 </style>

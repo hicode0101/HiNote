@@ -2,7 +2,7 @@
 // 语法高亮、状态栏语言名共用这一份映射。
 
 export type LangId =
-  | "md" | "txt" | "json" | "xml" | "pdf" | "image"
+  | "md" | "txt" | "json" | "xml" | "pdf" | "image" | "dio"
   | "html" | "css" | "javascript" | "typescript" | "python" | "java"
   | "csharp" | "cpp" | "go" | "rust" | "sql" | "php" | "yaml" | "shell"
   | "ini" | "batch";
@@ -17,6 +17,7 @@ const LANGS: LangDecl[] = [
   { id: "md", extensions: [".md", ".markdown", ".mdown", ".mkd"] },
   { id: "txt", extensions: [".txt", ".log"] },
   { id: "pdf", extensions: [".pdf"] },
+  { id: "dio", extensions: [".dio"] },
   { id: "json", extensions: [".json", ".jsonc"] },
   { id: "xml", extensions: [".xml", ".xsl", ".xslt", ".csproj", ".vbproj", ".props", ".targets", ".resx", ".plist"] },
   { id: "html", extensions: [".html", ".htm"] },
@@ -60,6 +61,7 @@ const ICON_OVERRIDES: Partial<Record<LangId, string>> = {
   txt: "note",
   pdf: "pdf",
   image: "image",
+  dio: "flowchart",
 };
 
 /** Tree/toolbar icon name for a file-type id. */
@@ -75,5 +77,6 @@ export function langColorClass(id: LangId | null): string {
   if (id === "txt") return "type-txt";
   if (id === "pdf") return "type-pdf";
   if (id === "image") return "type-image";
+  if (id === "dio") return "type-dio";
   return "type-code";
 }

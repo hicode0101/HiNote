@@ -64,6 +64,14 @@
 - PDF 阅读（独立只读视图）
 - 右键菜单：撤销 / 恢复、剪切 / 复制 / 粘贴、大小写转换（全部大写 / 小写 / 首字母大写）、重新加载文件；已禁用 WebView2 原生菜单，全程使用统一的自绘菜单
 
+### 矢量流程图（内嵌 drawio）
+
+- **新建 `*.dio` 流程图文件**：侧边栏 / 右键菜单 / 空状态页均可创建；内容为标准 drawio mxfile XML（纯文本），drawio 官方应用可直接打开，Git 可 diff
+- **完整 drawio 编辑器**：内嵌官方 drawio webapp（v32.7.4，Apache-2.0），菜单栏 / 形状库 / 多页画布 / 样式面板与官网一致，完全离线可用
+- **拖拽编辑**：形状拖入画布、连线吸附、缩放、多页管理等 drawio 全量交互
+- **导出 SVG / PNG**：编辑器顶栏一键导出，经系统保存对话框写盘
+- 保存 / 自动保存 / 外部修改检测复用现有文本链路；界面语言与深浅主题跟随应用设置
+
 ### 界面
 
 - 自定义无边框标题栏，深色 / 浅色主题跟随切换
@@ -81,6 +89,7 @@
 | 编码检测 | encoding_rs + chardetng（Rust） |
 | 文件监听 | notify（Rust FS Watcher） |
 | PDF | pdfjs-dist |
+| 流程图 | 内嵌官方 [drawio](https://github.com/jgraph/drawio) webapp（embed JSON 协议，参照 vscode-drawio 架构） |
 
 ## 快速开始
 
@@ -100,13 +109,22 @@ cd HiNote
 # 2. 安装前端依赖
 npm install
 
-# 3. 启动开发模式（前端热更新 + Rust 增量编译）
+# 3. 拉取流程图编辑器资源（约 63MB，不入库；详见下方说明）
+node scripts/fetch-drawio.mjs
+
+# 4. 启动开发模式（前端热更新 + Rust 增量编译）
 npm run tauri dev
 ```
 
 > Windows 下也可以使用根目录的 `build.bat` 一键脚本：
 > `build.bat dev`（开发）/ `build.bat release`（发布包）/ `build.bat debug`（快速调试包）/
 > `build.bat exe`（仅编译调试 exe）/ `build.bat check`（类型检查 + cargo check）。
+
+> **流程图资源**：`public/drawio/`（内嵌官方 drawio webapp，约 63MB）不随仓库分发，
+> 克隆后执行一次 `node scripts/fetch-drawio.mjs` 生成。脚本会从 GitHub 下载官方
+> `draw.war`（~51MB）并裁剪到 `public/drawio/`：下载默认走代理 `http://127.0.0.1:7891`，
+> 可用 `DIO_PROXY` 环境变量覆盖（如 `DIO_PROXY=socks5://127.0.0.1:7891`），设 `DIO_PROXY=`
+> 则直连。重复执行会删除后重新下载覆盖。
 
 ### 构建发布版本
 
@@ -129,14 +147,16 @@ build.bat release
 | `nsis/` | NSIS 安装程序（`.exe`，如已启用） |
 | `release/` | 免安装的单文件可执行程序 `HiNote.exe` |
 
-> 构建前请确保网络可访问 crates.io 与 npm（首次构建需下载 Rust 依赖）。
+> 构建前请确保网络可访问 crates.io 与 npm（首次构建需下载 Rust 依赖）；`public/drawio/`
+> 资源缺失时先执行 `node scripts/fetch-drawio.mjs`（见上文「流程图资源」说明）。
 
 ### 基本使用
 
 1. 启动 HiNote，打开（或新建）一个文件夹作为工作区 —— 它就是你所有笔记的存放位置
 2. 左侧文件树中新建 Markdown 文档，或在资源管理器中把已有的 `.md` 文件夹拖进来
 3. 工具栏下方切换 编辑 / 分屏编辑 / 预览 视图
-4. 所有笔记就是普通文件，可以用任何编辑器打开，也可以放进 Git 仓库做版本管理
+4. 新建流程图（侧边栏 / 右键菜单 / 空状态页）：在内嵌 drawio 编辑器中拖拽形状绘图，顶栏可导出 SVG / PNG
+5. 所有笔记就是普通文件，可以用任何编辑器打开，也可以放进 Git 仓库做版本管理
 
 ## 工程目录结构
 
@@ -154,6 +174,7 @@ HiNote/
 │   │   ├── Sidebar.vue         #   侧边栏（搜索 + 文件树）
 │   │   ├── TreeNodeItem.vue    #   文件树节点（递归、拖拽）
 │   │   ├── PdfViewer.vue       #   PDF 只读阅读器
+│   │   ├── DrawioEditor.vue    #   内嵌 drawio 流程图编辑器（*.dio）
 │   │   ├── ImagePreview.vue    #   图片画廊预览
 │   │   ├── ContextMenu.vue     #   统一右键菜单（编辑器 / 文件树）
 │   │   ├── PromptDialog.vue    #   对话框（确认 / 输入，可拖拽标题栏）
@@ -163,6 +184,7 @@ HiNote/
 │   │   └── TitleBar.vue        #   自定义标题栏
 │   ├── stores/                 # 响应式状态（Vue reactive 单例）
 │   │   ├── editor.ts           #   当前文档：内容 / 编码 / 脏标记 / 保存 / 外部修改检测
+│   │   ├── dio.ts              #   流程图导出状态（DrawioEditor ↔ 顶栏导出按钮）
 │   │   ├── workspace.ts        #   工作区：文件树 / 打开文件 / 图片删除联动
 │   │   ├── settings.ts         #   设置持久化（主题 / 模式 / 自动保存…）
 │   │   ├── ui.ts               #   菜单 / 对话框 / Toast 开关
@@ -200,10 +222,12 @@ HiNote/
 │   └── Cargo.toml
 │
 ├── public/
-│   └── locales/                # i18n 文案（zh-CN / en-US）
+│   ├── locales/                # i18n 文案（zh-CN / en-US）
+│   └── drawio/                 # 内嵌 drawio 编辑器 webapp（fetch-drawio.mjs 生成，不入库）
 │
 ├── scripts/                    # 构建辅助脚本
-│   └── gen-icon.mjs            #   应用图标生成
+│   ├── gen-icon.mjs            #   应用图标生成
+│   └── fetch-drawio.mjs        #   下载并裁剪官方 drawio webapp → public/drawio
 │
 └── package.json
 ```
@@ -232,6 +256,11 @@ A: HiNote 监听磁盘变更，检测到打开的文件被外部修改时会弹�
 
 **Q: 支持其他操作系统吗？**
 A: 目前仅在 Windows 10+ 上开发和测试。Tauri 本身跨平台，理论上 macOS / Linux 可构建，但未经过验证。
+
+**Q: 流程图（.dio）打不开，提示「流程图编辑器加载失败」？**
+A: `public/drawio/` 资源缺失（该资源约 63MB，不随仓库分发）。在仓库根目录执行
+`node scripts/fetch-drawio.mjs` 拉取后重启应用即可；下载默认走代理
+`http://127.0.0.1:7891`，可用 `DIO_PROXY` 环境变量覆盖，设 `DIO_PROXY=` 直连。
 
 ---
 

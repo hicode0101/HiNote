@@ -71,6 +71,7 @@ pub fn run() {
             commands::copy_image_to_clipboard,
             commands::pick_directory,
             commands::pick_image_file,
+            commands::export_file_as,
             commands::reveal_in_explorer,
             commands::get_version,
             commands::open_url,

@@ -144,6 +144,9 @@ function onDragStart(e: DragEvent): void {
 .row-icon.type-image {
   color: #0f7b6c;
 }
+.row-icon.type-dio {
+  color: #f08705;
+}
 .row-icon.type-code {
   color: #8250df;
 }

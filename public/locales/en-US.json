@@ -21,6 +21,7 @@
     "searching": "Searching…",
     "truncated": "Too many matches, showing the first {n}",
     "newNote": "New Note",
+    "newDio": "New Flowchart",
     "newFolder": "New Folder",
     "empty": "This folder is empty",
     "noMatch": "No matching results",
@@ -35,7 +36,8 @@
     "delete": "Delete",
     "reveal": "Reveal in File Explorer",
     "refresh": "Refresh",
-    "newText": "New Text File"
+    "newText": "New Text File",
+    "newDio": "New Flowchart"
   },
   "editor": {
     "edit": "Edit",
@@ -49,7 +51,8 @@
     "closeFile": "Close document",
     "saving": "Saving…",
     "pasteImageFailed": "Failed to save the image. Please try again.",
-    "newText": "New Text File"
+    "newText": "New Text File",
+    "newDio": "New Flowchart"
   },
   "status": {
     "line": "Ln",
@@ -113,6 +116,7 @@
     "reloadConfirmTitle": "Reload File",
     "reloadConfirmBody": "\"{name}\" has unsaved changes. Reloading will discard them. Continue?",
     "newTextTitle": "New Text File",
+    "newDioTitle": "New Flowchart",
     "unsavedTitle": "Unsaved Changes",
     "unsavedBody": "\"{name}\" has unsaved changes. Save them?",
     "save": "Save",
@@ -182,12 +186,22 @@
     "openFailed": "Failed to load PDF",
     "loading": "Loading…"
   },
+  "dio": {
+    "exportSvg": "Export SVG",
+    "exportPng": "Export PNG",
+    "exportFailed": "Export failed, please try again",
+    "savedTo": "Exported to {path}",
+    "loading": "Loading diagram editor…",
+    "loadFailed": "Failed to load the diagram editor",
+    "retry": "Retry"
+  },
   "lang": {
     "md": "Markdown",
     "txt": "Plain Text",
     "json": "JSON",
     "xml": "XML",
     "pdf": "PDF",
+    "dio": "Flowchart",
     "image": "Image",
     "html": "HTML",
     "css": "CSS",

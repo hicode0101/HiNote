@@ -21,6 +21,7 @@
     "searching": "搜索中…",
     "truncated": "结果过多，仅显示前 {n} 条",
     "newNote": "新建文档",
+    "newDio": "新建流程图",
     "newFolder": "新建文件夹",
     "empty": "此目录为空",
     "noMatch": "无匹配结果",
@@ -35,7 +36,8 @@
     "delete": "删除",
     "reveal": "在资源管理器中显示",
     "refresh": "刷新",
-    "newText": "新建文本"
+    "newText": "新建文本",
+    "newDio": "新建流程图"
   },
   "editor": {
     "edit": "编辑",
@@ -49,7 +51,8 @@
     "closeFile": "关闭文档",
     "saving": "保存中…",
     "pasteImageFailed": "图片保存失败，请重试",
-    "newText": "新建文本"
+    "newText": "新建文本",
+    "newDio": "新建流程图"
   },
   "status": {
     "line": "行",
@@ -113,6 +116,7 @@
     "reloadConfirmTitle": "重新加载文件",
     "reloadConfirmBody": "「{name}」有未保存的修改，重新加载将丢弃这些修改。是否继续？",
     "newTextTitle": "新建文本文件",
+    "newDioTitle": "新建流程图",
     "unsavedTitle": "未保存的修改",
     "unsavedBody": "「{name}」有未保存的修改，是否保存？",
     "save": "保存",
@@ -182,12 +186,22 @@
     "openFailed": "PDF 加载失败",
     "loading": "加载中…"
   },
+  "dio": {
+    "exportSvg": "导出 SVG",
+    "exportPng": "导出 PNG",
+    "exportFailed": "导出失败，请重试",
+    "savedTo": "已导出到 {path}",
+    "loading": "流程图编辑器加载中…",
+    "loadFailed": "流程图编辑器加载失败",
+    "retry": "重试"
+  },
   "lang": {
     "md": "Markdown",
     "txt": "纯文本",
     "json": "JSON",
     "xml": "XML",
     "pdf": "PDF",
+    "dio": "流程图",
     "image": "图片",
     "html": "HTML",
     "css": "CSS",
