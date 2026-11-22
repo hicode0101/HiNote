@@ -12,6 +12,12 @@
 [![Tauri](https://img.shields.io/badge/Tauri-2.0-FFC131?logo=tauri&logoColor=black)](https://v2.tauri.app/)
 [![Vue](https://img.shields.io/badge/Vue-3.5-4FC08D?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
 
+<br />
+
+<img src="docs/screenshots/HiNote-1.png" alt="HiNote 分屏编辑：左侧 Markdown 源码、右侧实时预览" width="860" />
+
+<sub><b>分屏编辑</b> —— 左侧源码、右侧实时预览，滚动同步</sub>
+
 </div>
 
 > ### ✨ 核心功能：粘贴图片自动保存到磁盘
