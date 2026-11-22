@@ -62,7 +62,8 @@
   --stroke-strong: rgba(255, 255, 255, 0.16);
   --stroke-control: rgba(255, 255, 255, 0.5);
 
-  --text-primary: #ffffff;
+  /* 主文字用浅灰而非纯白：#ffffff 在深色底上亮度刺眼，与编辑区 #e8e8e8 保持一致 */
+  --text-primary: #e8e8e8;
   --text-secondary: rgba(255, 255, 255, 0.72);
   --text-tertiary: rgba(255, 255, 255, 0.5);
 
