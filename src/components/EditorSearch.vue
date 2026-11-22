@@ -274,6 +274,7 @@ onUnmounted(() => {
   background: var(--bg-subtle);
   color: var(--text-primary);
   font-family: var(--font-mono);
+  font-variant-ligatures: none;
   font-size: 13px;
 }
 .search-input:focus {

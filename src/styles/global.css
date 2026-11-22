@@ -317,6 +317,8 @@ body {
 }
 .md-preview code {
   font-family: var(--font-mono);
+  /* 关闭编程连字：Cascadia Code 会把 !== => 等渲染成连字字形，改回标准字符显示 */
+  font-variant-ligatures: none;
   font-size: 0.9em;
   background: var(--bg-subtle);
   border: 1px solid var(--stroke);
@@ -496,6 +498,8 @@ body {
 .cm-host .cm-editor {
   height: 100%;
   font-family: var(--font-mono);
+  /* 关闭编程连字：Cascadia Code 会把 !== => 等渲染成连字字形，改回标准字符显示 */
+  font-variant-ligatures: none;
   font-size: 14px;
 }
 .cm-host .cm-editor.cm-focused {

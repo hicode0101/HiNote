@@ -140,6 +140,11 @@ export function insertHorizontalRule(): void {
   insertBlock("\n---\n");
 }
 
+/** 在光标处插入 <br/> 换行标签（Markdown 渲染为强制换行）。 */
+export function insertBr(): void {
+  insertAtCursor("<br/>");
+}
+
 export function insertLink(): void {
   wrapSelection("[", "](https://)", "https://");
 }

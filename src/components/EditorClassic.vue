@@ -8,7 +8,7 @@ import {
   historyKeymap,
   indentWithTab,
 } from "@codemirror/commands";
-import { search, highlightSelectionMatches } from "@codemirror/search";
+import { search } from "@codemirror/search";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { languages } from "@codemirror/language-data";
 import { json } from "@codemirror/lang-json";
@@ -341,8 +341,9 @@ function baseExtensions(): Extension[] {
     EditorView.lineWrapping,
     // 行号槽：编辑框左侧行号（图1 样式），全部文件类型通用
     lineNumbers(),
-    highlightSelectionMatches(),
     // Provides the searchQuery state used by setSearchQuery/findNext/replace.
+    // （不启用 highlightSelectionMatches：插入链接等操作会选中占位文本，
+    // 触发全文同文高亮，误导用户以为所有链接都发生了变化）
     search(),
     langExtension(editor.path),
     dropHandlers(),

@@ -1,6 +1,7 @@
 import { reactive, watch } from "vue";
 import { api, baseName } from "@/lib/tauri";
 import { langForPath } from "@/lib/languages";
+import { detectEol, toDiskText, toEditorText } from "@/lib/eol";
 import { t } from "@/lib/i18n";
 import { settings } from "./settings";
 import { confirmDialog, dialogState } from "./dialog";
@@ -23,6 +24,13 @@ export const editor = reactive({
   encoding: "utf8" as string,
   /** Human-readable label shown in the status bar. */
   encodingLabel: "" as string,
+  /**
+   * Disk line ending detected at open; editor.content is always LF-normalized
+   * (CM6 toString() joins with \n no matter what), and this is re-applied on
+   * save — see src/lib/eol.ts. Without it, opening a CRLF file would dirty
+   * it immediately and autosave would rewrite the whole file with LF.
+   */
+  eol: "\n" as "\n" | "\r\n",
 });
 
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -64,21 +72,26 @@ export async function openFile(path: string): Promise<void> {
     editor.savedMtime = await readMtime(path);
     editor.encoding = "utf8";
     editor.encodingLabel = "";
+    editor.eol = "\n";
     api.setWatchedFile(path).catch(() => {});
     return;
   }
   try {
     const out = await api.readFile(path);
+    const mtime = await readMtime(path);
     editor.generation++;
     editor.path = path;
-    editor.content = out.text;
-    editor.savedContent = out.text;
+    editor.eol = detectEol(out.text);
+    const norm = toEditorText(out.text);
+    editor.content = norm;
+    editor.savedContent = norm;
     editor.dirty = false;
     // Markdown 恢复用户最近一次切换的视图（编辑/分屏/预览，随切换持久化）；
     // 其他文本类型没有视图切换，恒为编辑视图。
     editor.view = langForPath(path) === "md" ? settings.defaultView : "edit";
     editor.cursor = { line: 1, col: 1 };
-    editor.savedMtime = await readMtime(path);
+    // path 与 savedMtime 之间不插入 await，外部变更检查不会撞上旧基线
+    editor.savedMtime = mtime;
     editor.encoding = out.encoding;
     editor.encodingLabel = out.encoding_label;
     api.setWatchedFile(path).catch(() => {});
@@ -97,6 +110,7 @@ export async function closeFile(): Promise<void> {
   editor.savedMtime = null;
   editor.encoding = "utf8";
   editor.encodingLabel = "";
+  editor.eol = "\n";
   api.setWatchedFile(null).catch(() => {});
 }
 
@@ -135,7 +149,8 @@ export async function flushSave(): Promise<void> {
   if (langForPath(editor.path) === "pdf") return; // read-only viewer, never written
   editor.saving = true;
   try {
-    await api.writeFile(editor.path, editor.content, editor.encoding);
+    // 行尾按打开时的检测结果还原（editor.content 恒为 \n 归一化文本）
+    await api.writeFile(editor.path, toDiskText(editor.content, editor.eol), editor.encoding);
     editor.savedContent = editor.content;
     editor.dirty = false;
     editor.savedMtime = await readMtime(editor.path);
@@ -150,11 +165,14 @@ export async function reloadFromDisk(): Promise<void> {
   const path = editor.path;
   try {
     const out = await api.readFile(path);
+    const mtime = await readMtime(path);
     editor.generation++;
-    editor.content = out.text;
-    editor.savedContent = out.text;
+    editor.eol = detectEol(out.text);
+    const norm = toEditorText(out.text);
+    editor.content = norm;
+    editor.savedContent = norm;
     editor.dirty = false;
-    editor.savedMtime = await readMtime(path);
+    editor.savedMtime = mtime;
     editor.encoding = out.encoding;
     editor.encodingLabel = out.encoding_label;
   } catch {
@@ -192,6 +210,7 @@ export async function handleFileChangedEvent(): Promise<void> {
   if (isPdfFile()) return; // read-only viewer keeps its own loaded copy
   const path = editor.path;
   const mtime = await readMtime(path);
+  if (editor.path !== path) return; // switched files meanwhile
   if (mtime === null) return; // deleted/inaccessible: stay silent
   if (editor.savedMtime == null) {
     editor.savedMtime = mtime; // no baseline yet (session restore): snapshot only

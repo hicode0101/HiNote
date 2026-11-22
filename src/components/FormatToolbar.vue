@@ -11,6 +11,7 @@ import {
   insertCodeBlock,
   insertTable,
   insertHorizontalRule,
+  insertBr,
   doUndo,
   doRedo,
 } from "@/lib/markdownActions";
@@ -51,6 +52,7 @@ const insertGroup: ToolItem[] = [
   { key: "image", label: t("toolbar.image"), icon: "image", run: () => void pickAndInsertImage() },
   { key: "table", label: t("toolbar.table"), icon: "table", run: insertTable },
   { key: "hr", label: t("toolbar.hr"), icon: "hr", run: insertHorizontalRule },
+  { key: "br", label: t("toolbar.br"), icon: "br", run: insertBr },
 ];
 
 const historyGroup: ToolItem[] = [

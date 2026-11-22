@@ -33,6 +33,7 @@ export const icons: Record<string, string> = {
   image: `<rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4.5 17.5l4.5-4.5 3 3 3.5-3.5 3.5 3.5"/>`,
   table: `<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M9.7 9.5v10M16 9.5v10"/>`,
   hr: `<path d="M4 12h16"/>`,
+  br: `<path d="M20 5.5v4.5a3.5 3.5 0 0 1-3.5 3.5H5"/><path d="M8.5 10 5 13.5l3.5 3.5"/>`,
   undo: `<path d="M8 5 4 9l4 4"/><path d="M4 9h9.5A6.5 6.5 0 0 1 20 15.5V19"/>`,
   redo: `<path d="M16 5l4 4-4 4"/><path d="M20 9h-9.5A6.5 6.5 0 0 0 4 15.5V19"/>`,
   moon: `<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>`,
