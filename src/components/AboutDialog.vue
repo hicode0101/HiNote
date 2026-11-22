@@ -114,7 +114,9 @@ function openHomepage(): void {
   align-items: center;
   gap: 8px;
   margin: 0 0 2px;
+  /* 标题栏 = 拖动把手 */
   cursor: grab;
+  user-select: none;
 }
 
 .about-title {

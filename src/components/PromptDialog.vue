@@ -2,8 +2,20 @@
 import { nextTick, watch, ref } from "vue";
 import { t } from "@/lib/i18n";
 import { dialogState, settleDialog } from "@/stores/dialog";
+import { useDraggableCard } from "@/lib/dialogDrag";
 
 const inputEl = ref<HTMLInputElement | null>(null);
+
+const { cardStyle, onHeaderPointerDown, reset } = useDraggableCard();
+
+// The component stays mounted in App.vue; re-center whenever it is dismissed
+// so the next dialog opens in its default position.
+watch(
+  () => dialogState.visible,
+  (visible) => {
+    if (!visible) reset();
+  }
+);
 
 watch(
   () => dialogState.visible,
@@ -43,8 +55,9 @@ function onInputKeydown(e: KeyboardEvent): void {
     <transition name="fade">
       <!-- 遮罩层不响应点击：必须通过对话框内按钮（或 Esc）显式关闭，防止误触 -->
       <div v-if="dialogState.visible" class="prompt-overlay">
-        <div class="prompt-panel" role="dialog">
-          <h3 class="prompt-title">{{ dialogState.title }}</h3>
+        <div class="prompt-panel" role="dialog" :style="cardStyle">
+          <!-- 标题栏作为拖动把手，可拖动整个对话框 -->
+          <h3 class="prompt-title" @pointerdown="onHeaderPointerDown">{{ dialogState.title }}</h3>
           <p v-if="dialogState.message" class="prompt-message">
             {{ dialogState.message }}
           </p>
@@ -102,6 +115,9 @@ function onInputKeydown(e: KeyboardEvent): void {
   margin: 0 0 8px;
   font-size: 17px;
   font-weight: 650;
+  /* 标题栏 = 拖动把手 */
+  cursor: grab;
+  user-select: none;
 }
 
 .prompt-message {

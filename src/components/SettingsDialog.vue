@@ -9,7 +9,11 @@ import {
   updateImagesDir,
   updateAutosave,
 } from "@/stores/settings";
+import { useDraggableCard } from "@/lib/dialogDrag";
 import Icon from "./Icon.vue";
+
+// Mounted with `v-if` in App.vue → a fresh mount always starts centered.
+const { cardStyle, onHeaderPointerDown } = useDraggableCard();
 
 const imagesDirInput = ref(settings.imagesDir);
 let imagesDirTimer: ReturnType<typeof setTimeout> | null = null;
@@ -43,8 +47,8 @@ onUnmounted(() => document.removeEventListener("keydown", onKeydown));
     <transition name="fade">
       <!-- 遮罩层不响应点击：通过关闭按钮或 Esc 显式关闭 -->
       <div class="settings-overlay">
-        <div class="settings-panel" role="dialog" :aria-label="t('settings.title')">
-          <header class="panel-header">
+        <div class="settings-panel" role="dialog" :style="cardStyle" :aria-label="t('settings.title')">
+          <header class="panel-header" @pointerdown="onHeaderPointerDown">
             <h2 class="panel-title">{{ t("settings.title") }}</h2>
             <button class="icon-btn" @click="ui.settingsOpen = false">
               <Icon name="dismiss" :size="16" />
@@ -160,6 +164,9 @@ onUnmounted(() => document.removeEventListener("keydown", onKeydown));
   align-items: center;
   justify-content: space-between;
   padding: 18px 24px 10px;
+  /* 标题栏 = 拖动把手 */
+  cursor: grab;
+  user-select: none;
 }
 .panel-title {
   margin: 0;
