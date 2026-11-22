@@ -57,6 +57,17 @@ if not exist node_modules (
     )
 )
 
+rem drawio webapp for *.dio flowcharts is not in git (~63MB); fetch if missing
+if not exist "public\drawio\index.html" (
+    echo [deps] public\drawio missing, fetching drawio webapp...
+    node scripts\fetch-drawio.mjs
+    if errorlevel 1 (
+        echo [ERROR] fetch drawio failed. Downloads go through a proxy by default:
+        echo         set DIO_PROXY=http://127.0.0.1:7891 ^(or "set DIO_PROXY=" for direct^)
+        exit /b 1
+    )
+)
+
 if /i "%MODE%"=="check" goto :check
 if /i "%MODE%"=="dev" goto :tauri_dev
 if /i "%MODE%"=="exe" goto :build_exe

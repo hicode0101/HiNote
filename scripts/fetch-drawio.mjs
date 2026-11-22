@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 // 把官方 drawio webapp 下载并裁剪到 public/drawio（离线内嵌编辑器用）。
-// webapp 约 63MB，不入库（.gitignore），克隆后执行一次即可：
-//   node scripts/fetch-drawio.mjs
+// webapp 约 63MB，不入库（.gitignore）。build.bat 与 CI 构建前都会调用本
+// 脚本：public/drawio/index.html 已存在时自动跳过，--force 强制重新下载：
+//   node scripts/fetch-drawio.mjs [--force]
 // 代理：默认 http://127.0.0.1:7891（GitHub 下载用），可用 DIO_PROXY 覆盖，
-// 设 DIO_PROXY= 走直连。
+// 设 DIO_PROXY= 走直连（CI 里就是用 DIO_PROXY= 直连）。
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdirSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -17,6 +18,12 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const tmp = path.join(root, ".drawio-tmp");
 const dest = path.join(root, "public", "drawio");
 
+const force = process.argv.includes("--force");
+if (!force && existsSync(path.join(dest, "index.html"))) {
+  console.log("[fetch-drawio] public/drawio already present, skip. (use --force to re-download)");
+  process.exit(0);
+}
+
 const proxy =
   process.env.DIO_PROXY !== undefined
     ? process.env.DIO_PROXY
@@ -24,11 +31,33 @@ const proxy =
       process.env.https_proxy ||
       "http://127.0.0.1:7891";
 
-// Git Bash 自带的 GNU tar 读不了 zip；Windows 的 bsdtar 可以。
-const tar =
-  process.platform === "win32"
-    ? path.join(process.env.SystemRoot ?? "C:\\Windows", "System32", "tar.exe")
-    : "tar";
+// war 是 zip 包：Git Bash 自带的 GNU tar 读不了；Windows 用系统自带 bsdtar
+// （System32\tar.exe），macOS 的 tar 本身就是 bsdtar，Linux 优先找 bsdtar、
+// 否则退回 unzip（GitHub 的 ubuntu runner 自带）。
+function pickExtractor() {
+  if (process.platform === "win32") {
+    return {
+      cmd: path.join(process.env.SystemRoot ?? "C:\\Windows", "System32", "tar.exe"),
+      args: (war, dir) => ["-xf", war, "-C", dir],
+    };
+  }
+  if (process.platform === "darwin") {
+    return { cmd: "tar", args: (war, dir) => ["-xf", war, "-C", dir] };
+  }
+  const candidates = [
+    { cmd: "bsdtar", probe: ["--version"], args: (war, dir) => ["-xf", war, "-C", dir] },
+    { cmd: "unzip", probe: ["-v"], args: (war, dir) => ["-q", war, "-d", dir] },
+  ];
+  for (const c of candidates) {
+    try {
+      execFileSync(c.cmd, c.probe, { stdio: "ignore" });
+      return c;
+    } catch {
+      // try next candidate
+    }
+  }
+  throw new Error("no bsdtar/unzip found to extract the zip archive");
+}
 
 function curl(args) {
   execFileSync(
@@ -49,8 +78,11 @@ curl(["-o", war, WAR_URL]);
 curl(["-o", path.join(tmp, "LICENSE"), LICENSE_URL]);
 
 console.log("[fetch-drawio] extracting...");
-execFileSync(tar, ["-xf", war, "-C", tmp], { stdio: "inherit" });
-const src = path.join(tmp, "extracted");
+const extractor = pickExtractor();
+execFileSync(extractor.cmd, extractor.args(war, tmp), { stdio: "inherit" });
+
+// war 内部就是 webapp 根目录（index.html / js / ... 平铺，无顶层目录）
+const src = tmp;
 
 // 运行时需要的 webapp 子集：排除 Java 服务端目录、Confluence 集成包、
 // 只读 viewer 构建、未压缩的开发源码（diagramly/ 仅保留 vsdx 导入器）、

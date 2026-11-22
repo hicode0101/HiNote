@@ -121,10 +121,11 @@ npm run tauri dev
 > `build.bat exe`（仅编译调试 exe）/ `build.bat check`（类型检查 + cargo check）。
 
 > **流程图资源**：`public/drawio/`（内嵌官方 drawio webapp，约 63MB）不随仓库分发，
-> 克隆后执行一次 `node scripts/fetch-drawio.mjs` 生成。脚本会从 GitHub 下载官方
-> `draw.war`（~51MB）并裁剪到 `public/drawio/`：下载默认走代理 `http://127.0.0.1:7891`，
-> 可用 `DIO_PROXY` 环境变量覆盖（如 `DIO_PROXY=socks5://127.0.0.1:7891`），设 `DIO_PROXY=`
-> 则直连。重复执行会删除后重新下载覆盖。
+> 缺失时自动从 GitHub 下载官方 `draw.war`（~51MB）并裁剪生成 —— `build.bat` 与
+> GitHub Actions（Release 工作流，带缓存）都会在构建前自动执行；手动执行
+> `node scripts/fetch-drawio.mjs` 即可（已有资源时自动跳过，`--force` 强制重新下载）。
+> 下载默认走代理 `http://127.0.0.1:7891`，可用 `DIO_PROXY` 环境变量覆盖
+> （如 `DIO_PROXY=socks5://127.0.0.1:7891`），设 `DIO_PROXY=` 则直连。
 
 ### 构建发布版本
 
@@ -137,7 +138,8 @@ build.bat release
 > **自动发布**：推送 `v*` 标签（如 `git tag v0.1.0 && git push origin v0.1.0`）会触发
 > GitHub Actions（`.github/workflows/release.yml`）自动打包 Windows / Linux / macOS
 > 安装包并发布 Release，附 Windows 绿色便携版 zip。版本号以 tag 为准，构建前自动
-> 同步进 `Cargo.toml` / `package.json`（版本唯一来源是 `Cargo.toml`）。
+> 同步进 `Cargo.toml` / `package.json`（版本唯一来源是 `Cargo.toml`）；构建时自动
+> 拉取并缓存流程图 drawio 资源（见上文「流程图资源」）。
 
 构建产物位于 `src-tauri/target/release/bundle/` 下：
 
