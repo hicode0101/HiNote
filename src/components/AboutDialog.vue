@@ -36,7 +36,8 @@ function openHomepage(): void {
 <template>
   <Teleport to="body">
     <transition name="fade">
-      <div class="about-overlay" @click.self="ui.aboutOpen = false">
+      <!-- 遮罩层不响应点击：通过关闭按钮或 Esc 显式关闭 -->
+      <div class="about-overlay">
         <div class="about-card" :style="cardStyle" role="dialog" :aria-label="t('about.title')">
           <header class="about-header" @pointerdown="onHeaderPointerDown">
             <h2 class="about-title">{{ t("about.title") }}</h2>

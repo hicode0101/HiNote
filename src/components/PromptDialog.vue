@@ -23,7 +23,7 @@ function ok(): void {
 
 function cancel(): void {
   // Confirm mode distinguishes the explicit 不保存 button ("cancel") from
-  // Esc / overlay dismissal (null = abort); prompts keep plain null.
+  // Esc dismissal (null = abort); prompts keep plain null.
   settleDialog(dialogState.withInput ? null : "cancel");
 }
 
@@ -41,11 +41,8 @@ function onInputKeydown(e: KeyboardEvent): void {
 <template>
   <Teleport to="body">
     <transition name="fade">
-      <div
-        v-if="dialogState.visible"
-        class="prompt-overlay"
-        @click.self="cancel"
-      >
+      <!-- 遮罩层不响应点击：必须通过对话框内按钮（或 Esc）显式关闭，防止误触 -->
+      <div v-if="dialogState.visible" class="prompt-overlay">
         <div class="prompt-panel" role="dialog">
           <h3 class="prompt-title">{{ dialogState.title }}</h3>
           <p v-if="dialogState.message" class="prompt-message">

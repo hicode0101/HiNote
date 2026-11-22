@@ -116,12 +116,8 @@ async function saveImageAs(): Promise<void> {
 <template>
   <Teleport to="body">
     <transition name="imgfade">
-      <div
-        v-if="imgPreview.open"
-        class="img-preview-overlay"
-        @click.self="closeImagePreview"
-        @wheel.prevent="onWheel"
-      >
+      <!-- 遮罩层不响应点击：通过关闭按钮 / Esc / 工具栏操作显式关闭 -->
+      <div v-if="imgPreview.open" class="img-preview-overlay" @wheel.prevent="onWheel">
         <img
           :key="imgPreview.index"
           class="preview-img"

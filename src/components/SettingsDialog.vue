@@ -41,7 +41,8 @@ onUnmounted(() => document.removeEventListener("keydown", onKeydown));
 <template>
   <Teleport to="body">
     <transition name="fade">
-      <div class="settings-overlay" @click.self="ui.settingsOpen = false">
+      <!-- 遮罩层不响应点击：通过关闭按钮或 Esc 显式关闭 -->
+      <div class="settings-overlay">
         <div class="settings-panel" role="dialog" :aria-label="t('settings.title')">
           <header class="panel-header">
             <h2 class="panel-title">{{ t("settings.title") }}</h2>
