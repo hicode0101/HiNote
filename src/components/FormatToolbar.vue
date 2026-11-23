@@ -12,6 +12,7 @@ import {
   insertTable,
   insertHorizontalRule,
   insertBr,
+  fixHardBreaks,
   doUndo,
   doRedo,
 } from "@/lib/markdownActions";
@@ -47,11 +48,12 @@ const midGroup: ToolItem[] = [
 
 const insertGroup: ToolItem[] = [
   { key: "code", label: t("toolbar.code"), icon: "code", run: () => wrapSelection("`", "`", "code") },
-  { key: "codeblock", label: t("toolbar.codeblock"), icon: "code", run: insertCodeBlock },
+  { key: "codeblock", label: t("toolbar.codeblock"), icon: "codeblock", run: insertCodeBlock },
   { key: "link", label: t("toolbar.link"), icon: "link", run: insertLink },
   { key: "image", label: t("toolbar.image"), icon: "image", run: () => void pickAndInsertImage() },
   { key: "table", label: t("toolbar.table"), icon: "table", run: insertTable },
   { key: "hr", label: t("toolbar.hr"), icon: "hr", run: insertHorizontalRule },
+  { key: "brFix", label: t("toolbar.brFix"), icon: "brFix", run: fixHardBreaks },
   { key: "br", label: t("toolbar.br"), icon: "br", run: insertBr },
 ];
 

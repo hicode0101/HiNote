@@ -119,15 +119,35 @@ export function insertBlock(text: string): void {
 }
 
 export function insertCodeBlock(): void {
-  const lang = "";
-  insertBlock("```" + lang + "\n\n```\n");
-  // Move cursor inside the fence.
-  if (view) {
-    const pos = view.state.selection.main.anchor;
-    view.dispatch({ selection: { anchor: pos - 5 } });
-    view.focus();
-    syncFromView();
+  const v = requireView();
+  const sel = v.state.selection.main;
+  if (sel.from === sel.to) {
+    insertBlock("```\n\n```\n");
+    // Move cursor inside the fence.
+    if (view) {
+      const pos = view.state.selection.main.anchor;
+      view.dispatch({ selection: { anchor: pos - 5 } });
+      view.focus();
+      syncFromView();
+    }
+    return;
   }
+  // 有选中内容：扩展到整行，用围栏包住选中行（``` 必须位于行首才是围栏，
+  // 精确贴着选区两端会把行内文本撕开）。选区止于某行行首时视为只选到上一行。
+  const firstLine = v.state.doc.lineAt(sel.from);
+  const atLineStart = v.state.doc.lineAt(sel.to).from === sel.to;
+  const lastLine = atLineStart ? v.state.doc.lineAt(sel.to - 1) : v.state.doc.lineAt(sel.to);
+  const head = "```\n";
+  const tail = "\n```";
+  v.dispatch({
+    changes: [
+      { from: firstLine.from, to: firstLine.from, insert: head },
+      { from: lastLine.to, to: lastLine.to, insert: tail },
+    ],
+    selection: { anchor: firstLine.from + head.length + (lastLine.to - firstLine.from) },
+    scrollIntoView: true,
+  });
+  focusAndSync();
 }
 
 export function insertTable(): void {
@@ -496,4 +516,50 @@ export function replaceAllText(text: string): void {
     scrollIntoView: true,
   });
   focusAndSync();
+}
+
+// ===== 行尾硬换行补全（行尾两个空格 → Markdown 强制换行）=====
+
+/** 围栏代码块开/闭行（缩进 ≤3 空格的 ``` / ~~~ ）。 */
+const FENCE_RE = /^\s{0,3}(`{3,}|~{3,})/;
+/** 行尾已是硬换行：≥2 空格、反斜杠或 <br> 标签。 */
+const HARD_BREAK_TAIL_RE = /\s{2,}$|\\$|<br\s*\/?>$/i;
+
+/**
+ * 整篇检查：为每个会被单个换行折叠的行尾补上两个空格。跳过空行、
+ * 围栏代码块内部（尾随空格在代码里有语义）、行尾已是硬换行
+ * （空格 / 反斜杠 / <br>）的行，以及文档最后一行（其后没有换行）。
+ * 编辑器内部恒为 \n（见 eol.ts），按行切分再合并不改变行尾约定。
+ */
+export function fixHardBreaks(): void {
+  const lines = editor.content.split("\n");
+  let inFence = false;
+  let fenceChar = "";
+  let count = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const fence = FENCE_RE.exec(line);
+    if (fence) {
+      const ch = fence[1][0];
+      if (!inFence) {
+        inFence = true;
+        fenceChar = ch;
+      } else if (ch === fenceChar) {
+        inFence = false;
+      }
+      continue; // 围栏行本身不动
+    }
+    if (inFence) continue;
+    if (line.trim() === "") continue;
+    if (i === lines.length - 1) continue;
+    if (HARD_BREAK_TAIL_RE.test(line)) continue;
+    lines[i] = line + "  ";
+    count++;
+  }
+  if (count > 0) {
+    replaceAllText(lines.join("\n"));
+    showToast(t("format.brFixed", { count }));
+  } else {
+    showToast(t("format.brAlready"));
+  }
 }

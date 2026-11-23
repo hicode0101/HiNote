@@ -12,6 +12,13 @@ import { hlAuto } from "@/lib/hljsAuto";
 /** Schemes the webview can load as-is. */
 const EXTERNAL_RE = /^(https?|data|asset|blob):/i;
 
+/**
+ * highlight.js 的 `shell`（别名 console / shellsession）是"终端会话记录"
+ * 语法，只识别 `$` 提示符行，对普通脚本内容零标记（用户直觉的 shell 脚本
+ * 对应 bash）。按 GitHub / VS Code 惯例映射到 bash。
+ */
+const SHELL_SESSION_LANGS = new Set(["shell", "console", "shellsession"]);
+
 /** Resolve a note-relative image path into a webview-loadable asset URL. */
 function resolveLocalSrc(src: string): string {
   if (!editor.path) return src;
@@ -24,6 +31,7 @@ export const md: MarkdownIt = new MarkdownIt({
   linkify: true,
   breaks: false,
   highlight(str: string, lang: string): string {
+    if (SHELL_SESSION_LANGS.has(lang)) lang = "bash";
     if (lang && hljs.getLanguage(lang)) {
       try {
         return `<pre class="hljs"><code>${hljs.highlight(str, {

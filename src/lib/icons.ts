@@ -29,11 +29,15 @@ export const icons: Record<string, string> = {
   ol: `<path d="M10 6.5h10M10 12h10M10 17.5h10"/><text x="3" y="8.6" font-size="6.6" fill="currentColor" stroke="none" font-family="Segoe UI, sans-serif">1</text><text x="3" y="14.1" font-size="6.6" fill="currentColor" stroke="none" font-family="Segoe UI, sans-serif">2</text><text x="3" y="19.6" font-size="6.6" fill="currentColor" stroke="none" font-family="Segoe UI, sans-serif">3</text>`,
   task: `<rect x="3.5" y="4.5" width="7" height="7" rx="1.6"/><path d="M5.6 8l1.4 1.4L9.6 6.8"/><rect x="3.5" y="12.5" width="7" height="7" rx="1.6"/><path d="M13.5 8h7M13.5 16h7"/>`,
   code: `<path d="M8.5 7.5 4 12l4.5 4.5M15.5 7.5 20 12l-4.5 4.5"/><path d="M13.3 5.5l-2.6 13"/>`,
+  // 代码块：圆角矩形包裹 <>，与行内代码的裸 <> 区分
+  codeblock: `<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M10 9.5 7.5 12l2.5 2.5M14 9.5l2.5 2.5-2.5 2.5"/>`,
   link: `<path d="M10.2 13.8a4 4 0 0 1 0-5.6l2.4-2.4a4 4 0 0 1 5.6 5.6l-1.4 1.4"/><path d="M13.8 10.2a4 4 0 0 1 0 5.6l-2.4 2.4a4 4 0 0 1-5.6-5.6l1.4-1.4"/>`,
   image: `<rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M4.5 17.5l4.5-4.5 3 3 3.5-3.5 3.5 3.5"/>`,
   table: `<rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M9.7 9.5v10M16 9.5v10"/>`,
   hr: `<path d="M4 12h16"/>`,
   br: `<path d="M20 5.5v4.5a3.5 3.5 0 0 1-3.5 3.5H5"/><path d="M8.5 10 5 13.5l3.5 3.5"/>`,
+  // 行尾两个空格（硬换行补全）：文本行末尾的两枚圆点
+  brFix: `<path d="M4 7h11"/><circle cx="17.6" cy="7" r="1.2" fill="currentColor" stroke="none"/><circle cx="20.4" cy="7" r="1.2" fill="currentColor" stroke="none"/><path d="M4 12h16"/><circle cx="17.6" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="20.4" cy="12" r="1.2" fill="currentColor" stroke="none"/><path d="M4 17h16"/><circle cx="17.6" cy="17" r="1.2" fill="currentColor" stroke="none"/><circle cx="20.4" cy="17" r="1.2" fill="currentColor" stroke="none"/>`,
   undo: `<path d="M8 5 4 9l4 4"/><path d="M4 9h9.5A6.5 6.5 0 0 1 20 15.5V19"/>`,
   redo: `<path d="M16 5l4 4-4 4"/><path d="M20 9h-9.5A6.5 6.5 0 0 0 4 15.5V19"/>`,
   moon: `<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>`,

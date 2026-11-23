@@ -84,7 +84,8 @@
     "br": "插入换行",
     "undo": "撤销",
     "redo": "重做",
-    "tableCol": "列"
+    "tableCol": "列",
+    "brFix": "补全换行（行尾两个空格）"
   },
   "settings": {
     "title": "设置",
@@ -179,7 +180,9 @@
   },
   "format": {
     "formatted": "格式化完成",
-    "minified": "压缩完成"
+    "minified": "压缩完成",
+    "brFixed": "已在 {count} 行行尾补全两个空格",
+    "brAlready": "所有行尾均已是硬换行，未做修改"
   },
   "pdf": {
     "prevPage": "上一页",

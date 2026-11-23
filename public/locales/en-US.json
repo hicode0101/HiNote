@@ -84,7 +84,8 @@
     "br": "Insert Line Break",
     "undo": "Undo",
     "redo": "Redo",
-    "tableCol": "Column"
+    "tableCol": "Column",
+    "brFix": "Fix Hard Line Breaks (two trailing spaces)"
   },
   "settings": {
     "title": "Settings",
@@ -179,7 +180,9 @@
   },
   "format": {
     "formatted": "Formatted",
-    "minified": "Minified"
+    "minified": "Minified",
+    "brFixed": "Added two trailing spaces to {count} line(s)",
+    "brAlready": "All line endings are already hard breaks"
   },
   "pdf": {
     "prevPage": "Previous page",
