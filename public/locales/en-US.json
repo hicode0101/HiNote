@@ -12,6 +12,9 @@
     "choose": "Choose Workspace Folder",
     "chooseAgain": "Choose Workspace Again",
     "workspaceMissing": "The workspace folder is missing or inaccessible, please choose again",
+    "dropHint": "Release to open this folder as your workspace",
+    "dropFailed": "Could not open the dropped folder — drop a folder, not a file",
+    "dropUnsupported": "Dropped paths are unavailable here — use the choose-folder button instead",
     "recent": "Recent Workspaces",
     "removeRecent": "Remove from list"
   },

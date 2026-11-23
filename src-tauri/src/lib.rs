@@ -1,5 +1,6 @@
 pub mod commands;
 pub mod config;
+pub mod drophook;
 pub mod recent;
 pub mod watcher;
 
@@ -43,6 +44,10 @@ pub fn run() {
             #[cfg(windows)]
             if let Some(window) = app.get_webview_window("main") {
                 disable_webview_default_context_menu(&window);
+            }
+            // Resolve Explorer drop paths for the welcome-screen drag & drop.
+            if let Some(window) = app.get_webview_window("main") {
+                drophook::install(app.handle(), &window);
             }
             Ok(())
         })

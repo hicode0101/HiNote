@@ -12,6 +12,9 @@
     "choose": "选择工作区目录",
     "chooseAgain": "重新选择工作区目录",
     "workspaceMissing": "工作区目录不存在或无法访问，请重新选择",
+    "dropHint": "松开鼠标，将此文件夹作为工作区打开",
+    "dropFailed": "无法打开拖放的文件夹，请拖放文件夹而非文件",
+    "dropUnsupported": "当前环境无法获取拖放路径，请使用“选择工作区目录”按钮",
     "recent": "最近打开",
     "removeRecent": "从列表中移除"
   },

@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
+import { listen } from "@tauri-apps/api/event";
 import { t } from "@/lib/i18n";
 import { api, baseName } from "@/lib/tauri";
 import { workspace, chooseWorkspace, removeRecent } from "@/stores/workspace";
 import { settings } from "@/stores/settings";
+import { showToast } from "@/stores/ui";
 import Icon from "./Icon.vue";
 
 const busy = ref(false);
@@ -14,12 +16,7 @@ async function pickWorkspace(): Promise<void> {
   try {
     const dir = await api.pickDirectory();
     if (dir) {
-      await chooseWorkspace(dir);
-      if (workspace.error) {
-        // Directory vanished between pick and read — reset so the user
-        // sees the welcome screen again with an explanatory message.
-        settings.workspace = null;
-      }
+      await openWorkspace(dir);
     }
   } finally {
     busy.value = false;
@@ -31,18 +28,124 @@ async function openRecent(path: string): Promise<void> {
   if (busy.value) return;
   busy.value = true;
   try {
-    await chooseWorkspace(path);
-    if (workspace.error) {
-      settings.workspace = null;
-    }
+    await openWorkspace(path);
   } finally {
     busy.value = false;
+  }
+}
+
+/** Shared workspace-open path; resets on failure so the welcome screen shows. */
+async function openWorkspace(dir: string): Promise<void> {
+  await chooseWorkspace(dir);
+  if (workspace.error) {
+    settings.workspace = null;
+  }
+}
+
+// ===== Drop a folder from Explorer to open it as the workspace =====
+// dragDropEnabled is false in tauri.conf.json, so HTML5 drag events reach the
+// webview (the tree→editor drags keep working) — but WebView2 hides dropped
+// paths from page JS (`File.path` is Electron-only). The Rust drophook
+// resolves the paths: the page forwards the dropped File objects via
+// postMessageWithAdditionalObjects and gets a `dropped-paths` event back.
+
+/** WebView2 content API for handing File objects to the native host. */
+function canForwardToHost(): boolean {
+  return typeof (window as unknown as { chrome?: { webview?: { postMessageWithAdditionalObjects?: unknown } } })
+    .chrome?.webview?.postMessageWithAdditionalObjects === "function";
+}
+
+function forwardFilesToHost(files: FileList): void {
+  (window as unknown as { chrome: { webview: { postMessageWithAdditionalObjects: (msg: string, objs: FileList) => void } } })
+    .chrome.webview.postMessageWithAdditionalObjects("hinote-drop-files", files);
+}
+
+let unlistenDrop: (() => void) | null = null;
+
+onMounted(async () => {
+  try {
+    unlistenDrop = await listen<string[]>("dropped-paths", (ev) => {
+      const dir = ev.payload.find(Boolean);
+      if (!dir || busy.value) return;
+      busy.value = true;
+      void (async () => {
+        await openWorkspace(dir);
+        if (workspace.error) {
+          // Not a folder (or unreadable) — back to the welcome screen.
+          showToast(t("welcome.dropFailed"));
+        }
+      })().finally(() => {
+        busy.value = false;
+      });
+    });
+  } catch {
+    // Outside Tauri there is no event bridge.
+  }
+});
+onUnmounted(() => {
+  unlistenDrop?.();
+  unlistenDrop = null;
+});
+
+const dragActive = ref(false);
+let dragDepth = 0;
+
+function isExternalDrag(e: DragEvent): boolean {
+  return Array.from(e.dataTransfer?.types ?? []).includes("Files");
+}
+
+function onDragEnter(e: DragEvent): void {
+  if (!isExternalDrag(e)) return;
+  e.preventDefault();
+  dragDepth++;
+  dragActive.value = true;
+}
+
+function onDragOver(e: DragEvent): void {
+  if (!isExternalDrag(e)) return;
+  e.preventDefault();
+  e.dataTransfer!.dropEffect = "copy";
+}
+
+function onDragLeave(e: DragEvent): void {
+  if (!isExternalDrag(e)) return;
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (dragDepth === 0) dragActive.value = false;
+}
+
+function onDrop(e: DragEvent): void {
+  dragDepth = 0;
+  dragActive.value = false;
+  if (!isExternalDrag(e) || busy.value) return;
+  e.preventDefault();
+  const files = e.dataTransfer?.files;
+  if (!files?.length) return;
+  // WebView2 keeps the absolute paths native-side; ask the drophook to
+  // resolve them (result arrives via the `dropped-paths` listener).
+  if (canForwardToHost()) {
+    forwardFilesToHost(files);
+  } else {
+    showToast(t("welcome.dropUnsupported"));
   }
 }
 </script>
 
 <template>
-  <div class="welcome">
+  <div
+    class="welcome"
+    @dragenter="onDragEnter"
+    @dragover="onDragOver"
+    @dragleave="onDragLeave"
+    @drop="onDrop"
+  >
+    <!-- Explorer folder drag-over feedback; pointer-events keep the drag
+         counters stable on the root element. -->
+    <div v-if="dragActive" class="drop-overlay">
+      <div class="drop-box">
+        <Icon name="folder" :size="40" class="drop-icon" />
+        <div class="drop-hint">{{ t("welcome.dropHint") }}</div>
+      </div>
+    </div>
     <div class="welcome-card">
       <svg class="welcome-logo" viewBox="0 0 24 24" width="72" height="72">
         <rect x="1.5" y="1.5" width="21" height="21" rx="5" fill="var(--accent)" />
@@ -95,6 +198,41 @@ async function openRecent(path: string): Promise<void> {
   align-items: center;
   justify-content: center;
   overflow-y: auto;
+  position: relative;
+}
+
+/* ---------- Folder drag-over overlay ---------- */
+
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.drop-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 48px;
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+}
+
+.drop-icon {
+  color: var(--accent);
+}
+
+.drop-hint {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
 }
 
 .welcome-card {
