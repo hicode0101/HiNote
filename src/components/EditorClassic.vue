@@ -32,7 +32,7 @@ import { tags as t } from "@lezer/highlight";
 import { editor, onContentChange, flushSave, isMarkdownFile } from "@/stores/editor";
 import { openEditorMenu } from "@/stores/ui";
 import { resolvedTheme } from "@/lib/theme";
-import { registerEditorView, savePastedImage, insertAtCursor, selectionImageFile, deleteSelectionCheckingImage } from "@/lib/markdownActions";
+import { registerEditorView, savePastedImage, insertAtCursor, insertMarkdownBlock, markdownFromClipboardHtml, selectionImageFile, deleteSelectionCheckingImage } from "@/lib/markdownActions";
 import { registerSplitEditor, onEditorScrolled } from "@/lib/splitSync";
 import { formatDocument } from "@/lib/formatActions";
 import { langForPath } from "@/lib/languages";
@@ -425,6 +425,16 @@ async function onPaste(e: ClipboardEvent): Promise<void> {
       return;
     }
   }
+  // 剪贴板 HTML 含表格（Excel/Word/网页）→ 整体转 Markdown：表格转表格，
+  // 标题/段落/列表一并转换（表格之间的文字不丢失）。这类来源的 text/plain
+  // 常没有列分隔（行粘连），必须走 HTML 解析。
+  const html = e.clipboardData?.getData("text/html");
+  if (!html) return;
+  const md = markdownFromClipboardHtml(html);
+  if (!md) return;
+  e.preventDefault();
+  e.stopPropagation();
+  insertMarkdownBlock(md);
 }
 
 // Reload the doc when a different file is opened.

@@ -507,6 +507,241 @@ export function insertAtCursor(text: string): void {
   focusAndSync();
 }
 
+// ===== 粘贴 HTML → Markdown（表格 + 表格间的文字一并保留）=====
+
+/** 表格单元格文本：<br> 折叠为空格，内部空白（含 &nbsp;）压缩，竖线转义。 */
+function cellText(cell: Element): string {
+  const clone = cell.cloneNode(true) as Element;
+  clone.querySelectorAll("br").forEach((br) => br.replaceWith(document.createTextNode(" ")));
+  return clone.textContent?.replace(/\s+/g, " ").trim().replace(/\|/g, "\\|") ?? "";
+}
+
+/** 行内片段整理：压缩空格（保留换行）、去首尾空白。 */
+function tidy(s: string): string {
+  return s.replace(/[ \t\u00a0]+/g, " ").replace(/\n{2,}/g, "\n").trim();
+}
+
+/** 元素内部是否含块级子元素（需要递归展开，而非当作一行行内文本）。 */
+function hasBlockChild(el: Element): boolean {
+  return !!el.querySelector("table, p, div, ul, ol, blockquote, pre, h1, h2, h3, h4, h5, h6");
+}
+
+/** 行内节点 → Markdown 行内文本（粗/斜/删除线/行内代码/链接/图片）。 */
+function inlineToMarkdown(node: Node, skip: ReadonlySet<Element>): string {
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent ?? "";
+  if (node.nodeType !== Node.ELEMENT_NODE) return "";
+  const el = node as Element;
+  if (skip.has(el)) return "";
+  const wrap = (mark: string): string => {
+    const t = tidy(inlineOfChildren(el, skip));
+    return t ? mark + t + mark : "";
+  };
+  switch (el.tagName.toLowerCase()) {
+    case "br":
+      return "\n";
+    case "strong":
+    case "b":
+      return wrap("**");
+    case "em":
+    case "i":
+      return wrap("*");
+    case "del":
+    case "s":
+    case "strike":
+      return wrap("~~");
+    case "code": {
+      const t = (el.textContent ?? "").trim();
+      return t ? "`" + t.replace(/`/g, "'") + "`" : "";
+    }
+    case "a": {
+      const t = tidy(inlineOfChildren(el, skip));
+      const href = el.getAttribute("href") ?? "";
+      if (t && href && !/^(javascript:|#)/i.test(href)) return `[${t}](${href})`;
+      return t;
+    }
+    case "img": {
+      const src = el.getAttribute("src") ?? "";
+      return src ? `![${(el.getAttribute("alt") ?? "").trim()}](${src})` : "";
+    }
+    case "script":
+    case "style":
+    case "meta":
+    case "link":
+      return "";
+    default:
+      return inlineOfChildren(el, skip);
+  }
+}
+
+function inlineOfChildren(el: Element, skip: ReadonlySet<Element> = new Set()): string {
+  let s = "";
+  for (const n of Array.from(el.childNodes)) s += inlineToMarkdown(n, skip);
+  return s;
+}
+
+/** 单个 <table> → Markdown 表格（首个行为表头）。 */
+function tableToMarkdown(table: Element): string | null {
+  const rows: string[][] = [];
+  let width = 0;
+  for (const tr of table.querySelectorAll("tr")) {
+    const cells = Array.from(tr.querySelectorAll("td, th"));
+    if (!cells.length) continue;
+    const row: string[] = [];
+    for (const cell of cells) {
+      const span = Math.max(1, parseInt(cell.getAttribute("colspan") ?? "1", 10) || 1);
+      const text = cellText(cell);
+      for (let i = 0; i < span; i++) row.push(text);
+    }
+    rows.push(row);
+    width = Math.max(width, row.length);
+  }
+  if (!rows.length || width === 0) return null;
+  // 补齐为矩形（列数 = 最宽行；不足的补空单元格）
+  const pad = (row: string[]) => {
+    const filled = row.slice(0, width);
+    while (filled.length < width) filled.push("");
+    return filled;
+  };
+  return [
+    "| " + pad(rows[0]).join(" | ") + " |",
+    "| " + Array.from({ length: width }, () => "---").join(" | ") + " |",
+    ...rows.slice(1).map((r) => "| " + pad(r).join(" | ") + " |"),
+  ].join("\n");
+}
+
+/** 列表（含嵌套）→ "- " / "1. " 行，子列表缩进两空格。 */
+function listToLines(list: Element, depth: number): string {
+  const ordered = list.tagName.toLowerCase() === "ol";
+  const indent = "  ".repeat(depth);
+  const lines: string[] = [];
+  let n = 1;
+  for (const li of Array.from(list.children)) {
+    if (li.tagName.toLowerCase() !== "li") continue;
+    const nested = Array.from(li.children).filter((c) =>
+      ["ul", "ol"].includes(c.tagName.toLowerCase())
+    );
+    const text = tidy(inlineOfChildren(li, new Set(nested)));
+    lines.push(indent + (ordered ? `${n++}. ` : "- ") + text);
+    for (const nl of nested) lines.push(listToLines(nl, depth + 1));
+  }
+  return lines.filter(Boolean).join("\n");
+}
+
+/** 按文档顺序收集块级内容：表格转表格，其余转标题/段落/列表/引用/代码块。 */
+function pushBlock(node: Node, out: string[], depth: number): void {
+  if (node.nodeType === Node.TEXT_NODE) {
+    const text = tidy(node.textContent ?? "");
+    if (text) out.push(text);
+    return;
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return;
+  const el = node as Element;
+  switch (el.tagName.toLowerCase()) {
+    case "table":
+      out.push(tableToMarkdown(el) ?? "");
+      return;
+    case "h1":
+    case "h2":
+    case "h3":
+    case "h4":
+    case "h5":
+    case "h6": {
+      const text = tidy(inlineOfChildren(el));
+      if (text) out.push("#".repeat(Number(el.tagName[1])) + " " + text);
+      return;
+    }
+    case "ul":
+    case "ol":
+      out.push(listToLines(el, depth));
+      return;
+    case "blockquote": {
+      const inner: string[] = [];
+      if (hasBlockChild(el)) {
+        for (const c of Array.from(el.childNodes)) pushBlock(c, inner, depth);
+      } else {
+        const t = tidy(inlineOfChildren(el));
+        if (t) inner.push(t);
+      }
+      const quoted = inner
+        .filter(Boolean)
+        .map((l) => l.split("\n").map((seg) => "> " + seg).join("\n"))
+        .join("\n");
+      if (quoted) out.push(quoted);
+      return;
+    }
+    case "pre":
+      out.push("```\n" + (el.textContent ?? "").replace(/^\n+|\n+$/g, "") + "\n```");
+      return;
+    case "br":
+      return;
+    case "script":
+    case "style":
+    case "head":
+    case "title":
+    case "meta":
+    case "link":
+      return;
+    default: {
+      // p / div / section 等容器与散落的行内元素：含块级子元素则递归展开，
+      // 否则整段压成一行行内文本。
+      if (hasBlockChild(el)) {
+        for (const c of Array.from(el.childNodes)) pushBlock(c, out, depth);
+      } else {
+        const text = tidy(inlineOfChildren(el));
+        if (text) out.push(text);
+      }
+      return;
+    }
+  }
+}
+
+/**
+ * 剪贴板 HTML → Markdown：按文档顺序转换表格（→ Markdown 表格）、
+ * 标题（→ #）、段落/列表/引用/代码块/行内样式，表格之间的文字不丢失。
+ * Markdown 无嵌套表格：内层表格降级为空格。
+ * HTML 中没有表格时返回 null（走编辑器默认的纯文本粘贴）。
+ */
+export function markdownFromClipboardHtml(html: string): string | null {
+  if (!/<table[\s>]/i.test(html)) return null;
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  doc.querySelectorAll("script, style, meta, link, noscript, title").forEach((el) => el.remove());
+  doc.querySelectorAll("table table").forEach((nested) =>
+    nested.replaceWith(document.createTextNode(" "))
+  );
+  const out: string[] = [];
+  for (const node of Array.from(doc.body.childNodes)) pushBlock(node, out, 0);
+  const joined = out
+    .map((b) => b.trim())
+    .filter(Boolean)
+    .join("\n\n");
+  return joined || null;
+}
+
+/**
+ * 粘贴语义插入转换结果（替换选区），首尾按需补空行——
+ * 表格行/标题紧贴段落文字时不会被解析。
+ */
+export function insertMarkdownBlock(md: string): void {
+  const v = requireView();
+  const sel = v.state.selection.main;
+  const fromLine = v.state.doc.lineAt(sel.from);
+  const toLine = v.state.doc.lineAt(sel.to);
+  const before = fromLine.text.slice(0, sel.from - fromLine.from);
+  const after = toLine.text.slice(sel.to - toLine.from);
+  const prevLine = fromLine.number > 1 ? v.state.doc.line(fromLine.number - 1).text : "";
+  const nextLine = toLine.number < v.state.doc.lines ? v.state.doc.line(toLine.number + 1).text : "";
+  // 光标行有残留文字 → 需断行 + 空行；行首但上一行非空 → 需一个空行
+  const lead = before.trim() !== "" ? "\n\n" : prevLine.trim() !== "" ? "\n" : "";
+  const tail = after.trim() !== "" || nextLine.trim() !== "" ? "\n\n" : "";
+  const insert = lead + md + tail;
+  v.dispatch({
+    changes: { from: sel.from, to: sel.to, insert },
+    selection: { anchor: sel.from + insert.length },
+    scrollIntoView: true,
+  });
+  focusAndSync();
+}
+
 /** Replace the whole document (JSON/XML formatting), keeping undo history. */
 export function replaceAllText(text: string): void {
   const v = requireView();
