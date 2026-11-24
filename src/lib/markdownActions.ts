@@ -627,6 +627,21 @@ function listToLines(list: Element, depth: number): string {
   return lines.filter(Boolean).join("\n");
 }
 
+/** 行内文本 → 行数组（显式换行作为分行依据）。 */
+function tidyTextLines(s: string): string[] {
+  return tidy(s)
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+}
+
+/** 引用块内部（含块级子元素）→ 行数组。 */
+function quoteInnerLines(el: Element): string[] {
+  const inner: string[] = [];
+  for (const c of Array.from(el.childNodes)) pushBlock(c, inner, 0);
+  return inner.filter(Boolean).flatMap((b) => b.split("\n"));
+}
+
 /** 按文档顺序收集块级内容：表格转表格，其余转标题/段落/列表/引用/代码块。 */
 function pushBlock(node: Node, out: string[], depth: number): void {
   if (node.nodeType === Node.TEXT_NODE) {
@@ -636,6 +651,20 @@ function pushBlock(node: Node, out: string[], depth: number): void {
   }
   if (node.nodeType !== Node.ELEMENT_NODE) return;
   const el = node as Element;
+  // 部分编辑器（如有道云导出 HTML）用自定义 div 表示引用/代码块，
+  // 而非标准 <blockquote>/<pre> 标签。
+  const role = el.getAttribute("yne-bulb-block");
+  if (role === "quote") {
+    const lines = hasBlockChild(el) ? quoteInnerLines(el) : tidyTextLines(inlineOfChildren(el));
+    if (lines.length) out.push(lines.map((l) => "> " + l).join("\n"));
+    return;
+  }
+  if (role === "code") {
+    const lang = (el.getAttribute("data-language") ?? "").trim();
+    const text = (el.textContent ?? "").replace(/^\n+|\n+$/g, "");
+    if (text) out.push("```" + lang + "\n" + text + "\n```");
+    return;
+  }
   switch (el.tagName.toLowerCase()) {
     case "table":
       out.push(tableToMarkdown(el) ?? "");
@@ -699,10 +728,17 @@ function pushBlock(node: Node, out: string[], depth: number): void {
  * 剪贴板 HTML → Markdown：按文档顺序转换表格（→ Markdown 表格）、
  * 标题（→ #）、段落/列表/引用/代码块/行内样式，表格之间的文字不丢失。
  * Markdown 无嵌套表格：内层表格降级为空格。
- * HTML 中没有表格时返回 null（走编辑器默认的纯文本粘贴）。
+ * 同时识别部分编辑器的自定义块标记（yne-bulb-block 的 quote/code div）。
+ * 不含表格等结构时返回 null（走编辑器默认的纯文本粘贴）。
  */
 export function markdownFromClipboardHtml(html: string): string | null {
-  if (!/<table[\s>]/i.test(html)) return null;
+  if (
+    !/<table[\s>]|<blockquote[\s>]|<pre[\s>]|yne-bulb-block=["'](?:quote|code)["']/i.test(
+      html
+    )
+  ) {
+    return null;
+  }
   const doc = new DOMParser().parseFromString(html, "text/html");
   doc.querySelectorAll("script, style, meta, link, noscript, title").forEach((el) => el.remove());
   doc.querySelectorAll("table table").forEach((nested) =>
@@ -710,11 +746,27 @@ export function markdownFromClipboardHtml(html: string): string | null {
   );
   const out: string[] = [];
   for (const node of Array.from(doc.body.childNodes)) pushBlock(node, out, 0);
-  const joined = out
+  // 相邻的引用块合并为一个（部分编辑器把一行引用拆成多个 div）
+  const merged: string[] = [];
+  for (const b of out) {
+    const prev = merged[merged.length - 1];
+    if (prev !== undefined && isQuoteBlock(prev) && isQuoteBlock(b)) {
+      merged[merged.length - 1] = prev + "\n" + b;
+    } else {
+      merged.push(b);
+    }
+  }
+  const joined = merged
     .map((b) => b.trim())
     .filter(Boolean)
     .join("\n\n");
   return joined || null;
+}
+
+/** 所有行都以 "> " 开头的块（引用块）。 */
+function isQuoteBlock(b: string): boolean {
+  const lines = b.split("\n").filter((l) => l.trim() !== "");
+  return lines.length > 0 && lines.every((l) => l.startsWith("> "));
 }
 
 /**
