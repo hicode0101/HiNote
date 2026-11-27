@@ -16,6 +16,7 @@ export interface AppConfig {
   editor_view: string;
   sidebar_collapsed: boolean;
   autosave: boolean;
+  word_wrap: boolean;
 }
 
 /** Text file read result with detected encoding info. */

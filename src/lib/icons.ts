@@ -38,6 +38,8 @@ export const icons: Record<string, string> = {
   br: `<path d="M20 5.5v4.5a3.5 3.5 0 0 1-3.5 3.5H5"/><path d="M8.5 10 5 13.5l3.5 3.5"/>`,
   // 行尾两个空格（硬换行补全）：文本行末尾的两枚圆点
   brFix: `<path d="M4 7h11"/><circle cx="17.6" cy="7" r="1.2" fill="currentColor" stroke="none"/><circle cx="20.4" cy="7" r="1.2" fill="currentColor" stroke="none"/><path d="M4 12h16"/><circle cx="17.6" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="20.4" cy="12" r="1.2" fill="currentColor" stroke="none"/><path d="M4 17h16"/><circle cx="17.6" cy="17" r="1.2" fill="currentColor" stroke="none"/><circle cx="20.4" cy="17" r="1.2" fill="currentColor" stroke="none"/>`,
+  // 自动换行：末行折返 + 回折箭头（编辑器顶栏显示切换用）
+  wordWrap: `<path d="M4 6h16M4 12h11.4a3.3 3.3 0 0 1 0 6.6H12M14.2 15.8 11.4 18.6l2.8 2.8M4 18h3.6"/>`,
   undo: `<path d="M8 5 4 9l4 4"/><path d="M4 9h9.5A6.5 6.5 0 0 1 20 15.5V19"/>`,
   redo: `<path d="M16 5l4 4-4 4"/><path d="M20 9h-9.5A6.5 6.5 0 0 0 4 15.5V19"/>`,
   moon: `<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/>`,

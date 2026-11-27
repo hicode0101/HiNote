@@ -17,6 +17,8 @@ export const settings = reactive({
   sidebarCollapsed: false,
   /** Auto-save edits to disk (persisted; default off, Ctrl+S always works). */
   autosave: false,
+  /** 文本编辑器自动换行（编辑器顶栏切换，持久化；默认开启）。 */
+  wordWrap: true,
 });
 
 export async function loadSettings(): Promise<void> {
@@ -28,6 +30,8 @@ export async function loadSettings(): Promise<void> {
     settings.defaultView = (cfg.editor_view as EditorView) || "edit";
     settings.sidebarCollapsed = !!cfg.sidebar_collapsed;
     settings.autosave = !!cfg.autosave;
+    // 默认开启换行：旧配置文件没有该字段（false）时保持开启而不是关掉
+    settings.wordWrap = cfg.word_wrap !== false;
   } catch {
     // Running outside Tauri (browser smoke test) — keep defaults.
   }
@@ -44,6 +48,7 @@ export async function persistSettings(): Promise<void> {
     editor_view: settings.defaultView,
     sidebar_collapsed: settings.sidebarCollapsed,
     autosave: settings.autosave,
+    word_wrap: settings.wordWrap,
   };
   try {
     await api.saveConfig(cfg);
@@ -54,6 +59,12 @@ export async function persistSettings(): Promise<void> {
 
 export async function toggleSidebar(): Promise<void> {
   settings.sidebarCollapsed = !settings.sidebarCollapsed;
+  await persistSettings();
+}
+
+/** 编辑器顶栏的自动换行显示切换（写入配置持久化）。 */
+export async function toggleWordWrap(): Promise<void> {
+  settings.wordWrap = !settings.wordWrap;
   await persistSettings();
 }
 

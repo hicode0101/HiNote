@@ -21,6 +21,8 @@ pub struct AppConfig {
     pub sidebar_collapsed: bool,
     /// Auto-save edits to disk (default off; Ctrl+S always works).
     pub autosave: bool,
+    /// 文本编辑器自动换行（编辑器顶栏切换，默认开启）。
+    pub word_wrap: bool,
 }
 
 impl Default for AppConfig {
@@ -32,6 +34,7 @@ impl Default for AppConfig {
             editor_view: "edit".into(),
             sidebar_collapsed: false,
             autosave: false,
+            word_wrap: true,
         }
     }
 }

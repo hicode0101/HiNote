@@ -222,7 +222,7 @@ onUnmounted(() => {
 /* 分屏两栏各占一半：flex 子项默认 min-width:auto，预览里不换行的代码块
    会把预览栏最小宽度撑到整行代码长度，把编辑区挤扁。显式放开约束后由
    flex-basis 0 均分；长代码行由代码块自身的 overflow:auto 横向滚动。 */
-.classic-body.split > .cm-wrap,
+.classic-body.split > .editor-root,
 .classic-body.split > .preview-root {
   min-width: 0;
 }

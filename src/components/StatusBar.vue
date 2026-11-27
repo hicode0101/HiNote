@@ -2,21 +2,15 @@
 import { computed } from "vue";
 import { t } from "@/lib/i18n";
 import { editor } from "@/stores/editor";
-import { langForPath } from "@/lib/languages";
 
 const saveState = computed(() => {
   if (editor.saving) return t("editor.saving");
   return editor.dirty ? t("editor.unsaved") : t("editor.saved");
 });
 
-// Language display name for the open file (Markdown / JSON / Python / ...).
-const langLabel = computed(() => {
-  const lang = langForPath(editor.path);
-  return lang ? t(`lang.${lang}`) : "";
-});
-
-// Detected encoding of the open file (backend ReadOut); UTF-8 fallback.
-const encodingLabel = computed(() => editor.encodingLabel || "UTF-8");
+// 行尾符显示：读取打开文件时检测到的真实行尾（editor.ts 的 detectEol），
+// 保存时也按该值还原，编辑器内部恒为 \n 归一化文本
+const eolLabel = computed(() => (editor.eol === "\r\n" ? "CRLF" : "LF"));
 </script>
 
 <template>
@@ -25,15 +19,11 @@ const encodingLabel = computed(() => editor.encodingLabel || "UTF-8");
       <span class="item">{{ t("status.line") }} {{ editor.cursor.line }}, {{ t("status.col") }} {{ editor.cursor.col }}</span>
       <span class="divider"></span>
       <span class="item">{{ editor.content.length }} {{ t("status.chars") }}</span>
-      <span class="divider"></span>
-      <span class="item">{{ langLabel }}</span>
     </div>
     <div class="right">
       <span class="item save" :class="{ dirty: editor.dirty }">{{ saveState }}</span>
       <span class="divider"></span>
-      <span class="item">{{ t("status.lf") }}</span>
-      <span class="divider"></span>
-      <span class="item">{{ encodingLabel }}</span>
+      <span class="item" :title="t('status.eolTip')">{{ eolLabel }}</span>
     </div>
   </footer>
 </template>

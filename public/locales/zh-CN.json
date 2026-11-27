@@ -55,14 +55,16 @@
     "saving": "保存中…",
     "pasteImageFailed": "图片保存失败，请重试",
     "newText": "新建文本",
-    "newDio": "新建流程图"
+    "newDio": "新建流程图",
+    "fileType": "文件类型",
+    "encoding": "编码格式",
+    "wordWrap": "自动换行"
   },
   "status": {
     "line": "行",
     "col": "列",
     "chars": "字符",
-    "lf": "LF",
-    "utf8": "UTF-8"
+    "eolTip": "行尾符：LF（\\n）或 CRLF（\\r\\n），打开文件时自动检测，保存时保持原格式"
   },
   "toolbar": {
     "bold": "加粗",

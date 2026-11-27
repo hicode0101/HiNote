@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { EditorState, Compartment, type Extension } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers } from "@codemirror/view";
 import {
@@ -23,7 +23,7 @@ import { go } from "@codemirror/lang-go";
 import { rust } from "@codemirror/lang-rust";
 import { sql } from "@codemirror/lang-sql";
 import { php } from "@codemirror/lang-php";
-import { StreamLanguage, HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { StreamLanguage, HighlightStyle, syntaxHighlighting, foldGutter, foldKeymap } from "@codemirror/language";
 import { yaml } from "@codemirror/legacy-modes/mode/yaml";
 import { shell } from "@codemirror/legacy-modes/mode/shell";
 import { properties } from "@codemirror/legacy-modes/mode/properties";
@@ -31,6 +31,9 @@ import { csharp } from "@codemirror/legacy-modes/mode/clike";
 import { tags as t } from "@lezer/highlight";
 import { editor, onContentChange, flushSave, isMarkdownFile } from "@/stores/editor";
 import { openEditorMenu } from "@/stores/ui";
+import { settings, toggleWordWrap } from "@/stores/settings";
+// 本文件已有 Lezer 的 tags as t（语法高亮），翻译函数以 tr 引用
+import { t as tr } from "@/lib/i18n";
 import { resolvedTheme } from "@/lib/theme";
 import { registerEditorView, savePastedImage, insertAtCursor, insertMarkdownBlock, markdownFromClipboardHtml, selectionImageFile, deleteSelectionCheckingImage } from "@/lib/markdownActions";
 import { registerSplitEditor, onEditorScrolled } from "@/lib/splitSync";
@@ -39,12 +42,33 @@ import { langForPath } from "@/lib/languages";
 import { api } from "@/lib/tauri";
 import { hasTreeFileData, readTreeFileData, refForTreeFile } from "@/lib/dropRef";
 import EditorSearch from "./EditorSearch.vue";
+import Icon from "./Icon.vue";
 
 const host = ref<HTMLElement | null>(null);
 const searchRef = ref<InstanceType<typeof EditorSearch> | null>(null);
 let cmView: EditorView | null = null;
 
 const themeCompartment = new Compartment();
+const wrapCompartment = new Compartment();
+
+// ===== 顶栏徽章（图1 风格）：文件类型 + 编码格式 + 右侧自动换行切换 =====
+
+// 文件类型徽章文案：已知语言用 i18n 名称（JSON / Markdown / ...），
+// 未知扩展名退回大写扩展名，无扩展名按纯文本显示。
+const typeLabel = computed(() => {
+  const lang = langForPath(editor.path);
+  if (lang) return tr(`lang.${lang}`);
+  const path = editor.path ?? "";
+  const dot = path.lastIndexOf(".");
+  return dot > 0 ? path.slice(dot + 1).toUpperCase() : "TXT";
+});
+
+// 编码徽章文案：与状态栏同一来源（后端读文件时识别）。
+const encodingBadge = computed(() => editor.encodingLabel || "UTF-8");
+
+function toggleWrap(): void {
+  void toggleWordWrap();
+}
 
 // VS Code-style token colors (ported from HiEditor FR-17 palette): blue bold
 // headings without underline, red inline code, colored fenced code, etc.
@@ -131,13 +155,22 @@ function editorTheme(dark: boolean): Extension {
       "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": {
         backgroundColor: dark ? "#294d6e" : "#add6ff",
       },
-      // 行号槽（参考 HiEditor 图1）：与编辑区同底色、无分隔边框，数字用弱化灰
+      // 行号槽（参考 HiEditor 图1）：无分隔边框，背景比编辑区略微加深一档，
+      // 与代码区形成轻微色差以便区分（数字仍用弱化灰）
       ".cm-gutters": {
-        backgroundColor: "transparent",
+        backgroundColor: dark ? "rgba(0, 0, 0, 0.14)" : "rgba(0, 0, 0, 0.03)",
         border: "none",
       },
       ".cm-lineNumbers .cm-gutterElement": {
         color: dark ? "#858585" : "#a1a1a1",
+      },
+      // 折叠槽箭头：与行号同色，悬停提亮
+      ".cm-foldGutter .cm-gutterElement": {
+        color: dark ? "#858585" : "#a1a1a1",
+        fontSize: "0.9em",
+      },
+      ".cm-foldGutter .cm-gutterElement:hover": {
+        color: dark ? "#d4d4d4" : "#1b1b1b",
       },
     },
     { dark }
@@ -147,6 +180,11 @@ function editorTheme(dark: boolean): Extension {
 function themeExtensions(): Extension[] {
   const dark = resolvedTheme.value === "dark";
   return [editorTheme(dark), syntaxHighlighting(dark ? darkHighlight : lightHighlight)];
+}
+
+/** 自动换行扩展：顶栏开关控制（持久化到配置，默认开启）。 */
+function wrapExtensions(): Extension {
+  return settings.wordWrap ? EditorView.lineWrapping : [];
 }
 
 // ===== 16 门代码语言 + JSON/XML（HiEditor 语言集合）=====
@@ -281,6 +319,8 @@ function baseExtensions(): Extension[] {
       { key: "Delete", run: deleteImageTagSelection },
       ...defaultKeymap,
       ...historyKeymap,
+      // 折叠快捷键（Ctrl+Shift+[ / ] 折叠展开选区所在行）
+      ...foldKeymap,
       indentWithTab,
       // Search: custom VS Code-style overlay instead of CM's built-in panel.
       {
@@ -338,9 +378,13 @@ function baseExtensions(): Extension[] {
         },
       },
     ]),
-    EditorView.lineWrapping,
+    // 自动换行：顶栏开关切换（wrapCompartment 动态重配置）
+    wrapCompartment.of(wrapExtensions()),
     // 行号槽：编辑框左侧行号（图1 样式），全部文件类型通用
     lineNumbers(),
+    // 折叠槽（图1 样式）：花括号/结构块行显示折叠箭头，点击折叠展开
+    // （JSON/XML 等括号块由语言解析提供折叠范围；foldGutter 内含 codeFolding）
+    foldGutter(),
     // Provides the searchQuery state used by setSearchQuery/findNext/replace.
     // （不启用 highlightSelectionMatches：插入链接等操作会选中占位文本，
     // 触发全文同文高亮，误导用户以为所有链接都发生了变化）
@@ -454,6 +498,14 @@ watch(resolvedTheme, () => {
   }
 });
 
+// 自动换行开关（编辑器顶栏）切换时热更新换行扩展。
+watch(
+  () => settings.wordWrap,
+  () => {
+    cmView?.dispatch({ effects: wrapCompartment.reconfigure(wrapExtensions()) });
+  }
+);
+
 // Keep the editor in sync with content loaded/set programmatically
 // (e.g. reloadFromDisk refreshing the open document).
 watch(
@@ -470,18 +522,100 @@ onUnmounted(destroyView);
 </script>
 
 <template>
-  <div class="cm-wrap">
-    <div ref="host" class="cm-host"></div>
-    <EditorSearch ref="searchRef" />
+  <div class="editor-root">
+    <!-- 顶栏（图1 风格）：左侧文件类型 / 编码格式徽章，右侧自动换行显示切换 -->
+    <div class="editor-topbar">
+      <span class="type-badge" :title="tr('editor.fileType')">
+        <Icon name="code" :size="12" />
+        {{ typeLabel }}
+      </span>
+      <span class="enc-badge" :title="tr('editor.encoding')">{{ encodingBadge }}</span>
+      <span class="topbar-spacer"></span>
+      <button
+        class="wrap-toggle"
+        :class="{ active: settings.wordWrap }"
+        :title="tr('editor.wordWrap')"
+        :aria-pressed="settings.wordWrap"
+        @click="toggleWrap"
+      >
+        <Icon name="wordWrap" :size="16" />
+      </button>
+    </div>
+    <div class="cm-wrap">
+      <div ref="host" class="cm-host"></div>
+      <EditorSearch ref="searchRef" />
+    </div>
   </div>
 </template>
 
 <style scoped>
+.editor-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
 .cm-wrap {
   position: relative;
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
+}
+
+/* 顶栏：文件类型 / 编码徽章（圆角胶囊，图1 样式）+ 自动换行切换 */
+.editor-topbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  padding: 6px 12px 6px 16px;
+}
+.type-badge,
+.enc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid var(--stroke);
+  background: var(--bg-subtle);
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  white-space: nowrap;
+  user-select: none;
+}
+.type-badge :deep(.fluent-icon) {
+  color: var(--accent);
+}
+.enc-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+.topbar-spacer {
+  flex: 1;
+}
+.wrap-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.wrap-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+.wrap-toggle.active {
+  color: var(--accent);
+  background: var(--accent-subtle-bg);
 }
 </style>

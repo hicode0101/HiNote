@@ -55,14 +55,16 @@
     "saving": "Saving…",
     "pasteImageFailed": "Failed to save the image. Please try again.",
     "newText": "New Text File",
-    "newDio": "New Flowchart"
+    "newDio": "New Flowchart",
+    "fileType": "File type",
+    "encoding": "Encoding",
+    "wordWrap": "Word wrap"
   },
   "status": {
     "line": "Ln",
     "col": "Col",
     "chars": "chars",
-    "lf": "LF",
-    "utf8": "UTF-8"
+    "eolTip": "Line ending: LF or CRLF, auto-detected when the file is opened and preserved when saving"
   },
   "toolbar": {
     "bold": "Bold",
